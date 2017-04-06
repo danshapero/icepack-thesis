@@ -1,6 +1,8 @@
 
 set(SOURCES
+  utilities.cpp
   discretization.cpp
+  field.cpp
   )
 
 add_library(icepack ${SOURCES})

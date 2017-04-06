@@ -28,4 +28,5 @@ endfunction(icepack_tests)
 
 icepack_tests(
   discretization
+  field
   )
