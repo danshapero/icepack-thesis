@@ -24,6 +24,32 @@ namespace icepack
 
 
   /**
+   * This is a curiously recurring template pattern base class representing any
+   * type that can be converted to a field, including algebraic expressions on
+   * fields.
+   */
+  template <int rank, int dim, Duality duality, class Expr>
+  class FieldExpr
+  {
+  public:
+    /**
+     * Implicit conversion to a reference to the underlying expression type.
+     */
+    operator const Expr&() const;
+
+    /**
+     * Evaluate one Galerkin expansion coefficient of a field expression.
+     */
+    double coefficient(const size_t i) const;
+
+    /**
+     * Return a reference to the discretization of the field expression.
+     */
+    const Discretization<dim>& discretization() const;
+  };
+
+
+  /**
    * This is a base class for any physical field discretized using a finite
    * element expansion. It is used as the return and argument types of all
    * glacier model objects (see `include/icepack/glacier_models`).
@@ -74,7 +100,8 @@ namespace icepack
    * different units: an extra factor of area in 2D and volume in 3D.
    */
   template <int rank, int dim, Duality duality = primal>
-  class FieldType
+  class FieldType :
+    public FieldExpr<rank, dim, duality, FieldType<rank, dim, duality>>
   {
   public:
 
@@ -150,6 +177,11 @@ namespace icepack
      * Return a reference to the Galerkin expansion coefficients for this field.
      */
     Vector<double>& coefficients();
+
+    /**
+     * Return a single Galerkin expansion coefficient for this field.
+     */
+    double coefficient(const size_t i) const;
 
 
     /**
@@ -227,6 +259,23 @@ namespace icepack
    * Field norms, inner products, and adjoints
    * ----------------------------------------- */
 
+  template <typename F>
+  const auto& get_discretization(const F& phi)
+  {
+    return phi.discretization();
+  }
+
+  template <typename F, typename... Args>
+  const auto& get_discretization(const F& phi, Args&&... args)
+  {
+    const auto& dsc1 = phi.discretization();
+    const auto& dsc2 = get_discretization(args...);
+    Assert(&dsc1 == &dsc2, dealii::ExcInternalError());
+
+    return dsc1;
+  }
+
+
   /**
    * Convert a primal field to a dual field. This amounts to multiplying the
    * Galerkin expansion coefficients of the primal field by the mass matrix.
@@ -292,7 +341,8 @@ namespace icepack
     const FieldType<rank, dim>& phi2
   )
   {
-    const auto& M = phi1.discretization()(rank).mass_matrix();
+    const auto& discretization = get_discretization(phi1, phi2);
+    const auto& M = discretization(rank).mass_matrix();
     return M.matrix_scalar_product(phi1.coefficients(), phi2.coefficients());
   }
 
@@ -306,6 +356,7 @@ namespace icepack
     const FieldType<rank, dim, primal>& phi2
   )
   {
+    get_discretization(phi1, phi2);
     return phi1.coefficients() * phi2.coefficients();
   }
 
@@ -319,9 +370,9 @@ namespace icepack
     const FieldType<rank, dim>& phi2
   )
   {
-    const auto& dsc = phi1.discretization();
-    const auto& fe = dsc(rank).finite_element();
-    const QGauss<dim> quad = dsc.quad();
+    const auto& discretization = get_discretization(phi1, phi2);
+    const auto& fe = discretization(rank).finite_element();
+    const QGauss<dim> quad = discretization.quad();
     dealii::FEValues<dim> fe_values(fe, quad, DefaultFlags::flags);
 
     const unsigned int n_q_points = quad.size();
@@ -332,7 +383,7 @@ namespace icepack
     const typename FieldType<rank, dim>::extractor_type ex(0);
 
     double dist_squared = 0.0;
-    for (auto cell: dsc(rank).dof_handler().active_cell_iterators())
+    for (auto cell: discretization(rank).dof_handler().active_cell_iterators())
     {
       fe_values.reinit(cell);
       fe_values[ex].get_function_values(phi1.coefficients(), phi1_values);
@@ -348,6 +399,224 @@ namespace icepack
 
     return std::sqrt(dist_squared);
   }
+
+
+
+  /* -----------------------------------
+   * Expression templates:
+   * Abandon hope, all ye who enter here
+   * ----------------------------------- */
+
+  template <int rank, int dim, Duality duality, class Expr>
+  FieldExpr<rank, dim, duality, Expr>::operator const Expr&() const
+  {
+    return static_cast<const Expr&>(*this);
+  }
+
+  template <int rank, int dim, Duality duality, class Expr>
+  double FieldExpr<rank, dim, duality, Expr>::coefficient(const size_t i) const
+  {
+    return static_cast<const Expr&>(*this).coefficient(i);
+  }
+
+  template <int rank, int dim, Duality duality, class Expr>
+  const Discretization<dim>&
+  FieldExpr<rank, dim, duality, Expr>::discretization() const
+  {
+    return static_cast<const Expr&>(*this).discretization();
+  }
+
+
+  template <int rank, int dim, Duality duality>
+  FieldType<rank, dim, duality>&
+  operator *=(FieldType<rank, dim, duality>& phi, const double alpha)
+  {
+    phi.coefficients() *= alpha;
+    return phi;
+  }
+
+  template <int rank, int dim, Duality duality>
+  FieldType<rank, dim, duality>&
+  operator /=(FieldType<rank, dim, duality>& phi, const double alpha)
+  {
+    phi.coefficients() *= 1.0/alpha;
+    return phi;
+  }
+
+
+  template <int rank, int dim, Duality duality>
+  FieldType<rank, dim, duality>&
+  operator +=(FieldType<rank, dim, duality>& phi,
+              const FieldType<rank, dim, duality>& psi)
+  {
+    get_discretization(phi, psi);
+    phi.coefficients().add(1.0, psi.coefficients());
+    return phi;
+  }
+
+
+  template <int rank, int dim, Duality duality, class Expr>
+  FieldType<rank, dim, duality>&
+  operator +=(FieldType<rank, dim, duality>& phi,
+              const FieldExpr<rank, dim, duality, Expr>& expr)
+  {
+    get_discretization(phi, expr);
+    Vector<double>& Phi = phi.coefficients();
+    for (unsigned int i = 0; i < Phi.size(); ++i)
+      Phi(i) += expr.coefficient(i);
+
+    return phi;
+  }
+
+
+  template <int rank, int dim, Duality duality>
+  FieldType<rank, dim, duality>&
+  operator -=(FieldType<rank, dim, duality>& phi,
+              const FieldType<rank, dim, duality>& psi)
+  {
+    get_discretization(phi, psi);
+    phi.coefficients().add(-1.0, psi.coefficients());
+    return phi;
+  }
+
+
+  template <int rank, int dim, Duality duality, class Expr>
+  FieldType<rank, dim, duality>&
+  operator -=(FieldType<rank, dim, duality>& phi,
+              const FieldExpr<rank, dim, duality, Expr>& expr)
+  {
+    get_discretization(phi, expr);
+    Vector<double>& Phi = phi.coefficients();
+    for (unsigned int i = 0; i < Phi.size(); ++i)
+      Phi(i) -= expr.coefficient(i);
+
+    return phi;
+  }
+
+
+  template <int rank, int dim, Duality duality, class Expr>
+  class ScalarMultiplyExpr :
+    public FieldExpr<rank, dim, duality,
+                     ScalarMultiplyExpr<rank, dim, duality, Expr>>
+  {
+  public:
+    ScalarMultiplyExpr(const double alpha, const Expr& expr)
+      : alpha(alpha), expr(expr)
+    {}
+
+    double coefficient(const size_t i) const
+    {
+      return alpha * expr.coefficient(i);
+    }
+
+    const Discretization<dim>& discretization() const
+    {
+      return expr.discretization();
+    }
+
+  protected:
+    const double alpha;
+    const Expr& expr;
+  };
+
+
+  template <int rank, int dim, Duality duality, class Expr>
+  ScalarMultiplyExpr<rank, dim, duality, Expr>
+  operator*(const double alpha, const FieldExpr<rank, dim, duality, Expr>& expr)
+  {
+    return ScalarMultiplyExpr<rank, dim, duality, Expr>(alpha, expr);
+  }
+
+
+  template <int rank, int dim, Duality duality, class Expr>
+  ScalarMultiplyExpr<rank, dim, duality, Expr>
+  operator/(const FieldExpr<rank, dim, duality, Expr>& expr, const double alpha)
+  {
+    return ScalarMultiplyExpr<rank, dim, duality, Expr>(1.0/alpha, expr);
+  }
+
+
+  template <int rank, int dim, Duality duality, class Expr>
+  ScalarMultiplyExpr<rank, dim, duality, Expr>
+  operator-(const FieldExpr<rank, dim, duality, Expr>& expr)
+  {
+    return ScalarMultiplyExpr<rank, dim, duality, Expr>(-1.0, expr);
+  }
+
+
+  template <int rank, int dim, Duality duality, class Expr1, class Expr2>
+  class AddExpr :
+    public FieldExpr<rank, dim, duality,
+                     AddExpr<rank, dim, duality, Expr1, Expr2>>
+  {
+  public:
+    AddExpr(const Expr1& expr1, const Expr2& expr2)
+      : expr1(expr1), expr2(expr2)
+    {
+      get_discretization(expr1, expr2);
+    }
+
+    double coefficient(const size_t i) const
+    {
+      return expr1.coefficient(i) + expr2.coefficient(i);
+    }
+
+    const Discretization<dim>& discretization() const
+    {
+      return expr1.discretization();
+    }
+
+  protected:
+    const Expr1& expr1;
+    const Expr2& expr2;
+  };
+
+
+  template <int rank, int dim, Duality duality, class Expr1, class Expr2>
+  AddExpr<rank, dim, duality, Expr1, Expr2>
+  operator+(const FieldExpr<rank, dim, duality, Expr1>& expr1,
+            const FieldExpr<rank, dim, duality, Expr2>& expr2)
+  {
+    return AddExpr<rank, dim, duality, Expr1, Expr2>(expr1, expr2);
+  }
+
+
+  template <int rank, int dim, Duality duality, class Expr1, class Expr2>
+  class SubtractExpr :
+    public FieldExpr<rank, dim, duality,
+                     SubtractExpr<rank, dim, duality, Expr1, Expr2> >
+  {
+  public:
+    SubtractExpr(const Expr1& expr1, const Expr2& expr2)
+      : expr1(expr1), expr2(expr2)
+    {
+      get_discretization(expr1, expr2);
+    }
+
+    double coefficient(const size_t i) const
+    {
+      return expr1.coefficient(i) - expr2.coefficient(i);
+    }
+
+    const Discretization<dim>& discretization() const
+    {
+      return expr1.discretization();
+    }
+
+  protected:
+    const Expr1& expr1;
+    const Expr2& expr2;
+  };
+
+
+  template <int rank, int dim, Duality duality, class Expr1, class Expr2>
+  SubtractExpr<rank, dim, duality, Expr1, Expr2>
+  operator-(const FieldExpr<rank, dim, duality, Expr1>& expr1,
+            const FieldExpr<rank, dim, duality, Expr2>& expr2)
+  {
+    return SubtractExpr<rank, dim, duality, Expr1, Expr2>(expr1, expr2);
+  }
+
 
 } // namespace icepack
 

@@ -73,6 +73,13 @@ namespace icepack
     return coefficients_;
   }
 
+  template <int rank, int dim, Duality duality>
+  double
+  FieldType<rank, dim, duality>::coefficient(const size_t i) const
+  {
+    return coefficients_[i];
+  }
+
 
   // Explicitly instantiate a bunch of templates.
   template class FieldType<0, 2, primal>;
