@@ -16,8 +16,14 @@ ENDIF()
 DEAL_II_INITIALIZE_CACHED_VARIABLES()
 # ---------------
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
 project(icepack)
+
+if(ICEPACK_TEST_COVERAGE)
+  include(CodeCoverage)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
+endif()
 
 enable_testing()
 

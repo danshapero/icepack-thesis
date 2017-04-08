@@ -21,7 +21,16 @@ To build the icepack sources, run the following:
     cmake <path/to/icepack>
     make
 
-Unit tests can be run by invoking `make test`.
+To run the unit tests, run
+
+    make test
+
+and to generate test coverage information, run
+
+    make coverage
+
+from the build directory.
+Checking test coverage requires the program `lcov`.
 
 
 ## Dependencies

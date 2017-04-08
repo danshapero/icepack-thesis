@@ -29,4 +29,8 @@ endfunction(icepack_tests)
 icepack_tests(
   discretization
   field
-  )
+)
+
+if(ICEPACK_TEST_COVERAGE)
+  setup_target_for_coverage(coverage ctest coverage)
+endif()
