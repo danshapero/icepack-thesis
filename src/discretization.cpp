@@ -139,5 +139,4 @@ namespace icepack
 
 
   template class Discretization<2>;
-  template class Discretization<3>;
 }

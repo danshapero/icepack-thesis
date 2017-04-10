@@ -83,13 +83,9 @@ namespace icepack
 
   // Explicitly instantiate a bunch of templates.
   template class FieldType<0, 2, primal>;
-  template class FieldType<0, 3, primal>;
   template class FieldType<1, 2, primal>;
-  template class FieldType<1, 3, primal>;
   template class FieldType<0, 2, dual>;
-  template class FieldType<0, 3, dual>;
   template class FieldType<1, 2, dual>;
-  template class FieldType<1, 3, dual>;
 
 
 
@@ -126,15 +122,9 @@ namespace icepack
 
 
   template Field<2> interpolate(const Discretization<2>&, const Function<2>&);
-  template Field<3> interpolate(const Discretization<3>&, const Function<3>&);
 
   template
   VectorField<2>
   interpolate(const Discretization<2>&, const TensorFunction<1, 2>&);
-
-  template
-  VectorField<3>
-  interpolate(const Discretization<3>&, const TensorFunction<1, 3>&);
-
 
 } // namespace icepack

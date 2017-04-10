@@ -1,12 +1,17 @@
 
-#include <set>
-#include <string>
-
+#include "testing.hpp"
+#include <deal.II/lac/vector.h>
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_refinement.h>
+#include <deal.II/grid/grid_tools.h>
 
-namespace icepack {
-  namespace testing {
+using dealii::Point;
+using dealii::Tensor;
+
+namespace icepack
+{
+  namespace testing
+  {
 
     std::set<std::string> get_cmdline_args(int argc, char ** argv)
     {
@@ -19,23 +24,39 @@ namespace icepack {
 
 
     dealii::Triangulation<2>
-    rectangular_glacier(double length, double width, unsigned int num_levels)
+    example_mesh(unsigned int num_levels, bool refined)
     {
-      dealii::Triangulation<2> triangulation;
-      const dealii::Point<2> p1(0.0, 0.0), p2(length, width);
-      dealii::GridGenerator::hyper_rectangle(triangulation, p1, p2);
+      dealii::Triangulation<2> tria;
+      dealii::GridGenerator::hyper_cube(tria);
+      tria.refine_global(num_levels);
 
-      for (auto cell: triangulation.active_cell_iterators())
-        for (unsigned int face_number = 0;
-             face_number < dealii::GeometryInfo<2>::faces_per_cell;
-             ++face_number)
-          if (cell->face(face_number)->center()(0) > length - 1.0)
-            cell->face(face_number)->set_boundary_id(1);
+      if (refined)
+      {
+        dealii::Vector<double> refinement_criteria(tria.n_active_cells());
+        for (const auto cell: tria.active_cell_iterators())
+        {
+          const unsigned int index = cell->index();
+          dealii::Point<2> x = cell->barycenter();
+          refinement_criteria[index] = x[0];
+        }
 
-      triangulation.refine_global(num_levels);
+        dealii::GridRefinement::refine(tria, refinement_criteria, 0.5);
+        tria.execute_coarsening_and_refinement();
+      }
 
-      return triangulation;
+      return tria;
     }
+
+
+    template <int dim>
+    double resolution(const dealii::Triangulation<dim>& tria)
+    {
+      return
+        dealii::GridTools::minimal_cell_diameter(tria) /
+        dealii::GridTools::diameter(tria);
+    }
+
+    template double resolution<2>(const dealii::Triangulation<2>&);
 
 
     bool is_decreasing(const std::vector<double>& seq)
@@ -45,6 +66,94 @@ namespace icepack {
           return false;
 
       return true;
+    }
+
+
+    AffineFunction::AffineFunction(double a_, const dealii::Tensor<1, 2>& p_) :
+      a(a_), p(p_)
+    {}
+
+
+    double inner_product(const AffineFunction& f, const AffineFunction& g)
+    {
+      return f.a * g.a
+        + f.a * (g.p[0] + g.p[1]) / 2
+        + g.a * (f.p[0] + f.p[1]) / 2
+        + (f.p[0] * g.p[1] + f.p[1] * g.p[0]) / 4
+        + (f.p * g.p) / 3;
+    }
+
+
+    double norm(const AffineFunction& f)
+    {
+      return std::sqrt(inner_product(f, f));
+    }
+
+
+    double AffineFunction::value(const Point<2>& x, const unsigned int) const
+    {
+      return a + p * x;
+    }
+
+
+    AffineFunction operator+(const AffineFunction& f, const AffineFunction& g)
+    {
+      return AffineFunction(f.a + g.a, f.p + g.p);
+    }
+
+
+    AffineFunction operator-(const AffineFunction& f, const AffineFunction& g)
+    {
+      return AffineFunction(f.a - g.a, f.p - g.p);
+    }
+
+
+    AffineFunction operator*(double alpha, const AffineFunction& f)
+    {
+      return AffineFunction(alpha * f.a, alpha * f.p);
+    }
+
+
+    AffineTensorFunction::
+    AffineTensorFunction(const AffineFunction& ux, const AffineFunction& uy) :
+      coords{{ux, uy}}
+    {}
+
+    Tensor<1, 2> AffineTensorFunction::value(const Point<2>& x) const
+    {
+      return Tensor<1, 2>{{coords[0].value(x), coords[1].value(x)}};
+    }
+
+
+    AffineTensorFunction
+    operator+(const AffineTensorFunction& f, const AffineTensorFunction& g)
+    {
+      return AffineTensorFunction(f.coords[0] + g.coords[0],
+                                  f.coords[1] + g.coords[1]);
+    }
+
+    AffineTensorFunction
+    operator-(const AffineTensorFunction& f, const AffineTensorFunction& g)
+    {
+      return AffineTensorFunction(f.coords[0] - g.coords[0],
+                                  f.coords[1] - g.coords[1]);
+    }
+
+    AffineTensorFunction operator*(double alpha, const AffineTensorFunction& f)
+    {
+      return AffineTensorFunction(alpha * f.coords[0], alpha * f.coords[1]);
+    }
+
+    double
+    inner_product(const AffineTensorFunction& f, const AffineTensorFunction& g)
+    {
+      return inner_product(f.coords[0], g.coords[0])
+        + inner_product(f.coords[1], g.coords[1]);
+    }
+
+    double norm(const AffineTensorFunction& f)
+    {
+      return std::sqrt(inner_product(f, f));
     }
 
 

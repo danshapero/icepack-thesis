@@ -1,19 +1,8 @@
 
-#include <deal.II/grid/grid_tools.h>
 #include <deal.II/fe/fe_values.h>
 #include <icepack/field.hpp>
 #include "testing.hpp"
 
-using dealii::Point;
-using dealii::Tensor;
-using dealii::Function;
-using dealii::TensorFunction;
-using dealii::QGauss;
-using dealii::FiniteElement;
-using dealii::FEValues;
-using dealii::GridTools::minimal_cell_diameter;
-using dealii::GridTools::diameter;
-using icepack::Discretization;
 using icepack::Field;
 using icepack::VectorField;
 using icepack::DualField;
@@ -23,126 +12,122 @@ const auto update_flags =
   dealii::update_values | dealii::update_quadrature_points;
 
 
-template <int dim>
-class ExampleField : public Function<dim>
+/// This function takes in a field or vector field and some function-like
+/// object, evaluates the difference between the field and the function at every
+/// quadrature point of every cell of the underlying mesh, and returns the max
+/// discrepancy between the two.
+template <int rank, int dim, class F>
+double diff(const icepack::FieldType<rank, dim>& u, const F& f)
 {
-  double value(const Point<dim>& x, const unsigned int = 0) const
-  {
-    return x[0] * x[1];
-  }
-};
+  const auto& discretization = u.discretization();
+  const auto& tria = discretization.triangulation();
+  const auto& fe = discretization(rank).finite_element();
+  const auto quad = discretization.quad();
+  const auto n_q_points = quad.size();
+  using value_type = typename icepack::FieldType<rank, dim>::value_type;
+  std::vector<value_type> u_values(n_q_points);
+  std::vector<value_type> f_values(n_q_points);
 
+  dealii::FEValues<dim> fe_values(fe, quad, update_flags);
+  const typename icepack::FieldType<rank, dim>::extractor_type ex(0);
 
-template <int dim>
-class ExampleVectorField : public TensorFunction<1, dim>
-{
-  Tensor<1, dim> value(const Point<dim>& x) const
-  {
-    Tensor<1, dim> v;
-    for (unsigned int i = 0; i < dim; ++i)
-      v[i] = x[(i + 1) % dim];
-    return v;
-  }
-};
-
-
-template <int dim>
-void test_field(const Discretization<dim>& dsc)
-{
-  const ExampleField<dim> function;
-
-  const auto& tria = dsc.triangulation();
-  const double dx = minimal_cell_diameter(tria) / diameter(tria);
-
-  Field<dim> phi = icepack::interpolate(dsc, function);
-
-  const QGauss<dim> quad = dsc.quad();
-  const unsigned int n_q_points = quad.size();
-
-  std::vector<double> function_values(n_q_points);
-  std::vector<double> phi_values(n_q_points);
-
-  FEValues<dim> fe_values(dsc.scalar().finite_element(), quad, update_flags);
-  const dealii::FEValuesExtractors::Scalar ex(0);
-
-  for (auto cell: dsc.scalar().dof_handler().active_cell_iterators())
+  double d = 0.0;
+  for (auto cell: discretization(rank).dof_handler().active_cell_iterators())
   {
     fe_values.reinit(cell);
 
-    function.value_list(fe_values.get_quadrature_points(), function_values);
-    fe_values[ex].get_function_values(phi.coefficients(), phi_values);
-
-    for (unsigned int q = 0; q < n_q_points; ++q)
-      check_real(phi_values[q], function_values[q], dx * dx);
-  }
-
-  const double n = norm(phi);
-  const double exact_integral = 1.0/3;
-  check_real(n, exact_integral, dx*dx);
-
-  const DualField<dim> f = transpose(phi);
-  check_real(inner_product(phi, phi), inner_product(f, phi), dx*dx);
-  check_real(dist(transpose(f), phi), 0.0, dx*dx);
-}
-
-
-template <int dim>
-void test_vector_field(const Discretization<dim>& dsc)
-{
-  const ExampleVectorField<dim> function;
-
-  const auto& tria = dsc.triangulation();
-  const double dx = minimal_cell_diameter(tria) / diameter(tria);
-
-  VectorField<dim> u = icepack::interpolate(dsc, function);
-
-  const QGauss<dim> quad = dsc.quad();
-  const unsigned int n_q_points = quad.size();
-
-  std::vector<Tensor<1, dim>> function_values(n_q_points);
-  std::vector<Tensor<1, dim>> u_values(n_q_points);
-
-  FEValues<dim> fe_values(dsc.vector().finite_element(), quad, update_flags);
-  const dealii::FEValuesExtractors::Vector ex(0);
-
-  for (auto cell: dsc.vector().dof_handler().active_cell_iterators())
-  {
-    fe_values.reinit(cell);
-
-    function.value_list(fe_values.get_quadrature_points(), function_values);
+    f.value_list(fe_values.get_quadrature_points(), f_values);
     fe_values[ex].get_function_values(u.coefficients(), u_values);
 
     for (unsigned int q = 0; q < n_q_points; ++q)
-      check((function_values[q] - u_values[q]).norm() < dx*dx);
+    {
+      const value_type diff = u_values[q] - f_values[q];
+      d = std::max(d, std::sqrt(diff * diff));
+    }
   }
 
-  const double n = norm(u);
-  const double exact_integral = std::sqrt(dim/3.0);
-  check_real(n, exact_integral, dx);
-
-  const DualVectorField<2> f = transpose(u);
-  check_real(inner_product(u, u), inner_product(f, u), dx*dx);
-  check_real(dist(transpose(f), u), 0.0, dx*dx);
+  return d;
 }
 
 
+using icepack::testing::AffineFunction;
+using icepack::testing::AffineTensorFunction;
+
 int main()
 {
-  const double length = 1.0;
-  const double width = 1.0;
-  auto tria = icepack::testing::rectangular_glacier(length, width);
-  const Discretization<2> discretization(tria, 2);
+  const dealii::Triangulation<2> tria = icepack::testing::example_mesh();
+  const icepack::Discretization<2> discretization(tria, 1);
 
-  Field<2> phi(discretization);
-  VectorField<2> v(discretization);
+  const double tolerance = icepack::testing::resolution(tria);
 
-  const auto& dof_handler = phi.discretization().scalar().dof_handler();
-  check(dof_handler.has_active_dofs());
-  check(phi.coefficients().size() == dof_handler.n_dofs());
-  check(v.coefficients().size() == 2 * phi.coefficients().size());
+  const AffineFunction Phi(1.0, dealii::Point<2>(-4.0, 8.0));
+  const AffineFunction Psi(-2.0, dealii::Point<2>(3.0, 7.0));
+  const AffineTensorFunction U(Phi, Psi);
+  const AffineFunction Xi(-6.0, dealii::Point<2>(1.3, 0.0));
+  const AffineFunction Chi(0.0, dealii::Point<2>(-1.0, 8.6));
+  const AffineTensorFunction V(Xi, Chi);
 
-  test_field(discretization);
-  test_vector_field(discretization);
+
+  TEST_SUITE("basic field operations")
+  {
+    const auto test = [&](const auto& Phi, const auto& Psi)
+    {
+      const auto phi = icepack::interpolate(discretization, Phi);
+      CHECK_REAL(diff(phi, Phi), 0.0, tolerance);
+      CHECK_REAL(norm(phi), norm(Phi), tolerance);
+
+      const auto psi = icepack::interpolate(discretization, Psi);
+      CHECK_REAL(inner_product(phi, psi),
+                 icepack::testing::inner_product(Phi, Psi),
+                 tolerance);
+
+      CHECK_REAL(dist(phi, psi), norm(Phi - Psi), tolerance);
+
+      const auto f = transpose(phi);
+      CHECK_REAL(inner_product(f, psi), inner_product(phi, psi), tolerance);
+      CHECK_FIELDS(transpose(f), phi, tolerance);
+    };
+
+    test(Phi, Psi);
+    test(U, V);
+  }
+
+
+  TEST_SUITE("copying fields")
+  {
+    const auto test = [&](const auto& Phi, const auto& Psi)
+    {
+      auto phi = icepack::interpolate(discretization, Phi);
+      auto psi(phi);
+      CHECK_FIELDS(phi, psi, tolerance);
+
+      psi = icepack::interpolate(discretization, Psi);
+      phi = psi;
+      CHECK_FIELDS(phi, psi, tolerance);
+    };
+
+    test(Phi, Psi);
+    test(U, V);
+  }
+
+
+  TEST_SUITE("moving fields")
+  {
+    const auto test = [&](const auto& Phi)
+    {
+      auto phi = icepack::interpolate(discretization, Phi);
+      auto psi(std::move(phi));
+      CHECK(phi.coefficients().size() == 0);
+      CHECK(psi.coefficients().size() > 0);
+
+      phi = std::move(psi);
+      CHECK(phi.coefficients().size() > 0);
+      CHECK(psi.coefficients().size() == 0);
+    };
+
+    test(Phi);
+    test(U);
+  }
 
   return 0;
 }
