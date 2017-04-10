@@ -20,7 +20,6 @@ template <int rank, int dim, class F>
 double diff(const icepack::FieldType<rank, dim>& u, const F& f)
 {
   const auto& discretization = u.discretization();
-  const auto& tria = discretization.triangulation();
   const auto& fe = discretization(rank).finite_element();
   const auto quad = discretization.quad();
   const auto n_q_points = quad.size();
@@ -50,6 +49,11 @@ double diff(const icepack::FieldType<rank, dim>& u, const F& f)
 }
 
 
+#define CHECK_FUNC(phi, Phi, tolerance)         \
+  CHECK_REAL(diff((phi), (Phi)), 0.0, (tolerance));
+
+
+
 using icepack::testing::AffineFunction;
 using icepack::testing::AffineTensorFunction;
 
@@ -66,6 +70,7 @@ int main()
   const AffineFunction Xi(-6.0, dealii::Point<2>(1.3, 0.0));
   const AffineFunction Chi(0.0, dealii::Point<2>(-1.0, 8.6));
   const AffineTensorFunction V(Xi, Chi);
+  const AffineTensorFunction W(Psi, Xi);
 
 
   TEST_SUITE("basic field operations")
@@ -73,7 +78,7 @@ int main()
     const auto test = [&](const auto& Phi, const auto& Psi)
     {
       const auto phi = icepack::interpolate(discretization, Phi);
-      CHECK_REAL(diff(phi, Phi), 0.0, tolerance);
+      CHECK_FUNC(phi, Phi, tolerance);
       CHECK_REAL(norm(phi), norm(Phi), tolerance);
 
       const auto psi = icepack::interpolate(discretization, Psi);
@@ -104,6 +109,14 @@ int main()
       psi = icepack::interpolate(discretization, Psi);
       phi = psi;
       CHECK_FIELDS(phi, psi, tolerance);
+
+      auto f = transpose(phi);
+      auto g(f);
+      CHECK_REAL(inner_product(f, psi), inner_product(g, psi), tolerance);
+
+      f = transpose(psi);
+      g = f;
+      CHECK_REAL(inner_product(f, phi), inner_product(g, phi), tolerance);
     };
 
     test(Phi, Psi);
@@ -123,11 +136,76 @@ int main()
       phi = std::move(psi);
       CHECK(phi.coefficients().size() > 0);
       CHECK(psi.coefficients().size() == 0);
+
+      auto f = transpose(phi);
+      auto g(std::move(f));
+      CHECK(f.coefficients().size() == 0);
+      CHECK(g.coefficients().size() > 0);
+
+      f = std::move(g);
+      CHECK(f.coefficients().size() > 0);
+      CHECK(g.coefficients().size() == 0);
     };
 
     test(Phi);
     test(U);
   }
+
+
+  TEST_SUITE("algebra on fields")
+  {
+    const auto test = [&](const auto& Phi, const auto& Psi)
+    {
+      auto phi = icepack::interpolate(discretization, Phi);
+      phi *= 2;
+      CHECK_FUNC(phi, 2 * Phi, tolerance);
+
+      auto psi = icepack::interpolate(discretization, Psi);
+      phi += psi;
+      CHECK_FUNC(phi, 2 * Phi + Psi, tolerance);
+    };
+
+    test(Phi, Psi);
+    test(U, V);
+  }
+
+
+  TEST_SUITE("field expression templates")
+  {
+    const auto test = [&](const auto& Phi1, const auto& Phi2, const auto& Phi3)
+    {
+      auto phi1 = icepack::interpolate(discretization, Phi1);
+      auto phi2 = icepack::interpolate(discretization, Phi2);
+      auto phi3 = icepack::interpolate(discretization, Phi3);
+
+      decltype(phi1) phi = phi1 - phi3;
+      CHECK_FUNC(phi, Phi1 - Phi3, tolerance);
+
+      phi = phi1 + phi2;
+      CHECK_FUNC(phi, Phi1 + Phi2, tolerance);
+
+      phi = 2 * phi1 + phi2;
+      CHECK_FUNC(phi, 2 * Phi1 + Phi2, tolerance);
+
+      phi = phi1 + 3 * phi2 + phi3;
+      CHECK_FUNC(phi, Phi1 + 3 * Phi2 + Phi3, tolerance);
+
+      phi = 4 * phi1 + 7 * phi2 + 3 * phi3;
+      CHECK_FUNC(phi, 4 * Phi1 + 7 * Phi2 + 3 * Phi3, tolerance);
+
+      phi = phi1 - phi2;
+      CHECK_FUNC(phi, Phi1 - Phi2, tolerance);
+
+      phi = phi1;
+      phi += 2 * phi2;
+      phi -= 3 * phi3;
+      CHECK_FUNC(phi, Phi1 + 2 * Phi2 - 3 * Phi3, tolerance);
+    };
+
+    test(Phi, Psi, Xi);
+    test(U, V, W);
+  }
+
 
   return 0;
 }

@@ -132,6 +132,12 @@ namespace icepack
      */
     explicit FieldType(const FieldType<rank, dim, duality>& phi) = default;
 
+    /**
+     * Create a field from an algebraic expression.
+     */
+    template <class Expr>
+    FieldType(FieldExpr<rank, dim, duality, Expr>&& expr);
+
 
     /**
      * The destructor for a field deallocates all the memory used for e.g. the
@@ -158,6 +164,13 @@ namespace icepack
      */
     FieldType<rank, dim, duality>&
     operator=(const FieldType<rank, dim, duality>& phi);
+
+    /**
+     * Assign a field from an algebraic expression.
+     */
+    template <class Expr>
+    FieldType<rank, dim, duality>&
+    operator=(FieldExpr<rank, dim, duality, Expr>&& expr);
 
 
     /**
@@ -424,6 +437,31 @@ namespace icepack
   FieldExpr<rank, dim, duality, Expr>::discretization() const
   {
     return static_cast<const Expr&>(*this).discretization();
+  }
+
+
+  template <int rank, int dim, Duality duality>
+  template <class Expr>
+  FieldType<rank, dim, duality>::
+  FieldType(FieldExpr<rank, dim, duality, Expr>&& expr) :
+    discretization_(&expr.discretization()),
+    coefficients_(discretization()(rank).dof_handler().n_dofs())
+  {
+    for (size_t k = 0; k < coefficients_.size(); ++k)
+      coefficients_[k] = expr.coefficient(k);
+  }
+
+  template <int rank, int dim, Duality duality>
+  template <class Expr>
+  FieldType<rank, dim, duality>&
+  FieldType<rank, dim, duality>::
+  operator=(FieldExpr<rank, dim, duality, Expr>&& expr)
+  {
+    get_discretization(*this, expr);
+    for (size_t k = 0; k < coefficients_.size(); ++k)
+      coefficients_[k] = expr.coefficient(k);
+
+    return *this;
   }
 
 
