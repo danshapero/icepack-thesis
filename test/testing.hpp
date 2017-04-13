@@ -27,6 +27,16 @@ namespace icepack
     example_mesh(unsigned int num_levels = 5, bool refined = false);
 
 
+    /// Return a mesh of the rectangle of the given length and width.
+    dealii::Triangulation<2>
+    rectangular_mesh(
+      double length,
+      double width,
+      unsigned int num_levels = 5,
+      bool refined = false
+    );
+
+
     /// Return the resolution of a mesh; we use this to set the tolerance for
     /// checks when testing whether two floating-point numbers are close enough.
     template <int dim>
@@ -37,6 +47,31 @@ namespace icepack
     /// the errors in some approximation into a vector, and we want to make sure
     /// that the errors are decreasing to 0.
     bool is_decreasing(const std::vector<double>& seq);
+
+
+    /// Return a deal.II function object given a lambda or a `std::function`.
+    template <int dim>
+    using Fn = dealii::ScalarFunctionFromFunctionObject<dim>;
+
+    /// Return a deal.II TensorFunction given a lambda or a `std::function`
+    template <int dim>
+    class TensorFn : public dealii::TensorFunction<1, dim>
+    {
+    public:
+      using func_type =
+        std::function<dealii::Tensor<1, dim>(const dealii::Point<dim>&)>;
+
+      TensorFn(const func_type& f) : f_(f)
+      {}
+
+      dealii::Tensor<1, dim> value(const dealii::Point<dim>& x) const
+      {
+        return f_(x);
+      }
+
+      const func_type f_;
+    };
+
 
 
     /// This class is used to represent affine functions, which we use for

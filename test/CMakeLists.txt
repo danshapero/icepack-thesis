@@ -29,6 +29,7 @@ endfunction(icepack_tests)
 icepack_tests(
   discretization
   field
+  ssa
 )
 
 if(ICEPACK_TEST_COVERAGE)

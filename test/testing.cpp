@@ -48,6 +48,23 @@ namespace icepack
     }
 
 
+    dealii::Triangulation<2>
+    rectangular_mesh(
+      double length, double width, unsigned int num_levels, bool refined
+    )
+    {
+      dealii::Triangulation<2> tria = example_mesh(num_levels, refined);
+
+      const auto f = [=](const dealii::Point<2>& x)
+      {
+        return dealii::Point<2>(length * x[0], width * x[1]);
+      };
+
+      dealii::GridTools::transform(f, tria);
+      return tria;
+    }
+
+
     template <int dim>
     double resolution(const dealii::Triangulation<dim>& tria)
     {
