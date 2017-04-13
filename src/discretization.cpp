@@ -112,6 +112,22 @@ namespace icepack
   }
 
   template <int dim>
+  typename Discretization<dim>::iterator Discretization<dim>::begin() const
+  {
+    auto its = std::make_tuple(scalar().dof_handler().begin_active(),
+                               vector().dof_handler().begin_active());
+    return iterator(its);
+  }
+
+  template <int dim>
+  typename Discretization<dim>::iterator Discretization<dim>:: end() const
+  {
+    auto its = std::make_tuple(scalar().dof_handler().end(),
+                               vector().dof_handler().end());
+    return iterator(its);
+  }
+
+  template <int dim>
   const typename Discretization<dim>::Rank& Discretization<dim>::scalar() const
   {
     return ranks_[0];

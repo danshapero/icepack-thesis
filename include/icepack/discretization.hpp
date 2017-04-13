@@ -9,6 +9,7 @@
 #include <deal.II/grid/tria.h>
 #include <deal.II/fe/fe.h>
 #include <deal.II/dofs/dof_handler.h>
+#include <deal.II/dofs/dof_tools.h>
 #include <deal.II/lac/sparsity_pattern.h>
 #include <deal.II/lac/constraint_matrix.h>
 #include <deal.II/lac/sparse_matrix.h>
@@ -56,11 +57,18 @@ namespace icepack
     Discretization(const Triangulation<dim>& tria, unsigned int degree);
 
     const Triangulation<dim>& triangulation() const;
+    QGauss<dim> quad() const;
+
     const Rank& scalar() const;
     const Rank& vector() const;
     const Rank& operator()(unsigned int rank_) const;
 
-    QGauss<dim> quad() const;
+    using dof_iterator = typename DoFHandler<dim>::active_cell_iterator;
+    using iterator =
+      dealii::SynchronousIterators<std::tuple<dof_iterator, dof_iterator>>;
+
+    iterator begin() const;
+    iterator end() const;
 
   protected:
     std::array<Rank, 2> ranks_;

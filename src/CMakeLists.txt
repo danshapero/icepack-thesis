@@ -3,7 +3,7 @@ set(SOURCES
   utilities.cpp
   discretization.cpp
   field.cpp
-  )
+)
 
 add_library(icepack ${SOURCES})
 DEAL_II_SETUP_TARGET(icepack)

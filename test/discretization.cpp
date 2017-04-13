@@ -25,5 +25,8 @@ int main(int argc, char ** argv)
     CHECK(rankd.mass_matrix().l1_norm() > 0.0);
   }
 
+  CHECK(discretization.begin() != discretization.end());
+
+
   return 0;
 }
