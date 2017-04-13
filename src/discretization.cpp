@@ -9,19 +9,18 @@
 
 namespace icepack
 {
-  using dealii::FE_Q;
-
   namespace
   {
     template <int dim>
-    std::unique_ptr<FiniteElement<dim>>
+    std::unique_ptr<dealii::FiniteElement<dim>>
     make_fe(const unsigned int p, const unsigned int rank)
     {
       if (rank == 0)
-        return std::make_unique<FE_Q<dim>>(p);
+        return std::make_unique<dealii::FE_Q<dim>>(p);
 
       if (rank == 1)
-        return std::make_unique<dealii::FESystem<dim>>(FE_Q<dim>(p), dim);
+        return
+          std::make_unique<dealii::FESystem<dim>>(dealii::FE_Q<dim>(p), dim);
 
       throw;
     }
@@ -48,7 +47,7 @@ namespace icepack
 
     mass_matrix_.reinit(sparsity_pattern_);
     dealii::MatrixCreator::
-      create_mass_matrix(dof_handler_, QGauss<dim>(p + 1), mass_matrix_);
+      create_mass_matrix(dof_handler_, dealii::QGauss<dim>(p + 1), mass_matrix_);
   }
 
 
@@ -59,14 +58,14 @@ namespace icepack
   }
 
   template <int dim>
-  const FiniteElement<dim>&
+  const dealii::FiniteElement<dim>&
   Discretization<dim>::Rank::finite_element() const
   {
     return *fe_;
   }
 
   template <int dim>
-  const DoFHandler<dim>&
+  const dealii::DoFHandler<dim>&
   Discretization<dim>::Rank::dof_handler() const
   {
     return dof_handler_;
@@ -74,7 +73,7 @@ namespace icepack
 
 
   template <int dim>
-  const ConstraintMatrix&
+  const dealii::ConstraintMatrix&
   Discretization<dim>::Rank::constraints() const
   {
     return constraints_;
@@ -82,7 +81,7 @@ namespace icepack
 
 
   template <int dim>
-  const SparsityPattern&
+  const dealii::SparsityPattern&
   Discretization<dim>::Rank::sparsity_pattern() const
   {
     return sparsity_pattern_;
@@ -90,7 +89,7 @@ namespace icepack
 
 
   template <int dim>
-  const SparseMatrix<double>&
+  const dealii::SparseMatrix<double>&
   Discretization<dim>::Rank::mass_matrix() const
   {
     return mass_matrix_;
@@ -147,10 +146,10 @@ namespace icepack
   }
 
   template <int dim>
-  QGauss<dim> Discretization<dim>::quad() const
+  dealii::QGauss<dim> Discretization<dim>::quad() const
   {
     const unsigned int p = scalar().finite_element().tensor_degree() + 1;
-    return QGauss<dim>(p + 1);
+    return dealii::QGauss<dim>(p + 1);
   }
 
 

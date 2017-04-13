@@ -385,7 +385,7 @@ namespace icepack
   {
     const auto& discretization = get_discretization(phi1, phi2);
     const auto& fe = discretization(rank).finite_element();
-    const QGauss<dim> quad = discretization.quad();
+    const auto quad = discretization.quad();
     dealii::FEValues<dim> fe_values(fe, quad, DefaultFlags::flags);
 
     const unsigned int n_q_points = quad.size();

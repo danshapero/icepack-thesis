@@ -18,14 +18,6 @@
 namespace icepack
 {
   using dealii::Triangulation;
-  using dealii::QGauss;
-  using dealii::FiniteElement;
-  using dealii::DoFHandler;
-  using dealii::SparsityPattern;
-  using dealii::ConstraintMatrix;
-  using dealii::SparseMatrix;
-  using dealii::SolverControl;
-  using dealii::SmartPointer;
 
 
   /**
@@ -96,11 +88,11 @@ namespace icepack
       const dealii::SparseMatrix<double>& mass_matrix() const;
 
     protected:
-      std::unique_ptr<FiniteElement<dim>> fe_;
-      DoFHandler<dim> dof_handler_;
-      ConstraintMatrix constraints_;
-      SparsityPattern sparsity_pattern_;
-      SparseMatrix<double> mass_matrix_;
+      std::unique_ptr<dealii::FiniteElement<dim>> fe_;
+      dealii::DoFHandler<dim> dof_handler_;
+      dealii::ConstraintMatrix constraints_;
+      dealii::SparsityPattern sparsity_pattern_;
+      dealii::SparseMatrix<double> mass_matrix_;
     };
 
     /**
