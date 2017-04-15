@@ -62,7 +62,7 @@ int main()
   const dealii::Triangulation<2> tria = icepack::testing::example_mesh();
   const icepack::Discretization<2> discretization(tria, 1);
 
-  const double tolerance = icepack::testing::resolution(tria);
+  const double tolerance = std::pow(icepack::testing::resolution(tria), 2);
 
   const AffineFunction Phi(1.0, dealii::Point<2>(-4.0, 8.0));
   const AffineFunction Psi(-2.0, dealii::Point<2>(3.0, 7.0));
