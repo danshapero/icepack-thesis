@@ -27,8 +27,21 @@ namespace icepack
     example_mesh(unsigned int num_levels, bool refined)
     {
       dealii::Triangulation<2> tria;
-      dealii::GridGenerator::hyper_cube(tria);
+      dealii::GridGenerator::hyper_cube(tria, 0.0, 1.0, true);
       tria.refine_global(num_levels);
+
+      // Make the top and bottom sides of the mesh have the same boundary ID as
+      // the the left side.
+      const size_t faces_per_cell = dealii::GeometryInfo<2>::faces_per_cell;
+      for (auto cell: tria.active_cell_iterators())
+      {
+        for (unsigned int k = 0; k < faces_per_cell; ++k)
+        {
+          const auto boundary_id = cell->face(k)->boundary_id();
+          if ((boundary_id == 2) or (boundary_id == 3))
+            cell->face(k)->set_boundary_id(0);
+        }
+      }
 
       if (refined)
       {

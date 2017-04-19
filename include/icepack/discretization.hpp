@@ -87,6 +87,13 @@ namespace icepack
        */
       const dealii::SparseMatrix<double>& mass_matrix() const;
 
+      /**
+       * Return a map describing the boundary values for homogeneous Dirichlet
+       * boundary conditions.
+       */
+      std::map<dealii::types::global_dof_index, double>
+      make_zero_boundary_values(const unsigned int boundary_id) const;
+
     protected:
       std::unique_ptr<dealii::FiniteElement<dim>> fe_;
       dealii::DoFHandler<dim> dof_handler_;

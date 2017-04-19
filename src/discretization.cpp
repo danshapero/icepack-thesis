@@ -97,6 +97,24 @@ namespace icepack
 
 
   template <int dim>
+  std::map<dealii::types::global_dof_index, double>
+  Discretization<dim>::Rank::
+  make_zero_boundary_values(const unsigned int boundary_id) const
+  {
+    std::map<dealii::types::global_dof_index, double> boundary_values;
+
+    dealii::VectorTools::interpolate_boundary_values(
+      dof_handler_,
+      boundary_id,
+      dealii::ZeroFunction<dim>(fe_->n_components()),
+      boundary_values
+    );
+
+    return boundary_values;
+  }
+
+
+  template <int dim>
   Discretization<dim>::Discretization(
     const Triangulation<dim>& tria,
     const unsigned int p

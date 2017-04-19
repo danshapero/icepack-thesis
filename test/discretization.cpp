@@ -22,6 +22,7 @@ int main(int argc, char ** argv)
     CHECK(not rankd.sparsity_pattern().empty());
 
     CHECK((rankd.constraints().n_constraints() == 0) xor refined);
+    CHECK(rankd.make_zero_boundary_values(0).size() > 0);
     CHECK(rankd.mass_matrix().l1_norm() > 0.0);
   }
 

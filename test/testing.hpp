@@ -22,7 +22,9 @@ namespace icepack
     /// Return a mesh of the unit square with a given number of refinement
     /// levels. If the optional argument `refined` is true, then the right half
     /// of the mesh will be refined; this is for testing functions on non-
-    /// uniform meshes.
+    /// uniform meshes. The boundary ID of the surfaces `x = 1` will be set to 1
+    /// for testing problems with non-uniform boundary conditions, all other
+    /// boundaries will have ID 0.
     dealii::Triangulation<2>
     example_mesh(unsigned int num_levels = 5, bool refined = false);
 
