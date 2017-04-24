@@ -4,6 +4,7 @@
 
 #include <deal.II/base/symmetric_tensor.h>
 #include <icepack/field.hpp>
+#include <icepack/numerics/convergence_log.hpp>
 
 namespace icepack
 {
@@ -51,7 +52,7 @@ namespace icepack
     const ViscousRheology rheology;
     const MembraneStress membrane_stress;
 
-    Viscosity(const ViscousRheology& rheology = ViscousRheology());
+    Viscosity(const ViscousRheology& rheology);
 
     virtual double
     action(
@@ -87,6 +88,27 @@ namespace icepack
     ) const;
 
     virtual DualVectorField<2> derivative(const Field<2>& thickness) const;
+  };
+
+
+  struct IceShelf
+  {
+    IceShelf(
+      const Viscosity& viscosity,
+      const double convergence_tolerance = 1.0e-6
+    );
+
+    VectorField<2> solve(
+      const Field<2>& thickness,
+      const Field<2>& theta,
+      const VectorField<2>& velocity,
+      const std::map<dealii::types::global_dof_index, double>& bcs,
+      numerics::ConvergenceLog& convergence_log
+    ) const;
+
+    const Gravity gravity;
+    const Viscosity viscosity;
+    const double tolerance;
   };
 
 } // namespace icepack

@@ -1,6 +1,9 @@
 
+#include <deal.II/lac/sparse_direct.h>
+#include <deal.II/numerics/matrix_tools.h>
 #include <icepack/physics/constants.hpp>
 #include <icepack/physics/ssa.hpp>
+#include <icepack/numerics/optimization.hpp>
 
 using dealii::SymmetricTensor;
 using dealii::FEValues;
@@ -391,5 +394,68 @@ namespace icepack
     return tau;
   }
 
+
+  IceShelf::IceShelf(
+    const Viscosity& viscosity_,
+    const double tolerance
+  ) : gravity(), viscosity(viscosity_), tolerance(tolerance)
+  {}
+
+
+  VectorField<2> IceShelf::solve(
+    const Field<2>& h,
+    const Field<2>& theta,
+    const VectorField<2>& u0,
+    const std::map<dealii::types::global_dof_index, double>& bcs,
+    numerics::ConvergenceLog& convergence_log
+  ) const
+  {
+    const auto& discretization = get_discretization(h, theta, u0);
+    VectorField<2> u(u0);
+    VectorField<2> p(discretization);
+    const auto& constraints = discretization.vector().constraints();
+
+    double F0 = std::numeric_limits<double>::infinity();
+    const double initial_viscous_action = viscosity.action(h, theta, u);
+    double F = gravity.action(h, u) + initial_viscous_action;
+
+    // Use the initial value of the viscous power dissipation to scale the
+    // stopping criterion.
+    while(F0 - F > tolerance * initial_viscous_action)
+    {
+      // Compute the derivative of the action.
+      DualVectorField<2> df =
+        gravity.derivative(h) + viscosity.derivative(h, theta, u);
+
+      // Compute the second derivative of the action.
+      dealii::SparseMatrix<double> A = viscosity.hessian(h, theta, u);
+      constraints.condense(A);
+      constraints.condense(df.coefficients());
+      dealii::MatrixTools::
+        apply_boundary_values(bcs, A, p.coefficients(), df.coefficients());
+
+      // Solve for the search direction using Newton's method.
+      dealii::SparseDirectUMFPACK G;
+      G.initialize(A);
+      G.vmult(p.coefficients(), df.coefficients());
+      constraints.distribute(p.coefficients());
+
+      // Find the best guess for the velocity along the search diretion.
+      const auto& f =
+        [&](const double alpha)
+        {
+          const VectorField<2> v = u - alpha * p;
+          return gravity.action(h, v) + viscosity.action(h, theta, v);
+        };
+
+      const double alpha = numerics::golden_section_search(f, 0.0, 1.0, 1.0e-2);
+      F0 = F;
+      F = f(alpha);
+      convergence_log.add_entry(F);
+      u -= alpha * p;
+    }
+
+    return u;
+  }
 
 } // namespace icepack

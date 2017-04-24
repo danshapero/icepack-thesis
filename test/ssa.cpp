@@ -19,6 +19,8 @@ int main(int argc, char ** argv)
 {
   const auto args = icepack::testing::get_cmdline_args(argc, argv);
   const bool verbose = args.count("--verbose");
+  const bool refined = args.count("--refined");
+  const bool quadratic = args.count("--quadratic");
   const size_t num_samples = 8;
 
   icepack::ViscousRheology rheology;
@@ -121,15 +123,28 @@ int main(int argc, char ** argv)
   const double A = std::pow(rho * gravity / 4, 3) * icepack::rate_factor(temp);
   const double area = length * width;
 
-  const auto tria = icepack::testing::rectangular_mesh(length, width);
-  const icepack::Discretization<2> discretization(tria, 1);
-  const double tolerance = std::pow(icepack::testing::resolution(tria), 2);
+  // If we're testing with biquadratic finite elements, use a coarser mesh.
+  const size_t num_levels = 5 - quadratic;
 
+  // The degree of the finite element basis functions we're using. The accuracy
+  // we expect for all our methods depends on the order of the basis functions.
+  const size_t p = 1 + quadratic;
+
+  const auto tria =
+    icepack::testing::rectangular_mesh(length, width, num_levels, refined);
+  const icepack::Discretization<2> discretization(tria, p);
+  const double tolerance = std::pow(icepack::testing::resolution(tria), p + 1);
+
+  // Use a constant temperature, and linearly decreasing thickness.
   using icepack::testing::Fn;
-  const auto Theta = Fn<2>([&](const Point<2>&){return temp;});
+  const auto Theta =
+    Fn<2>([&](const Point<2>&){return temp;});
   const auto Thickness =
     Fn<2>([&](const Point<2>& x){return h0 - dh * x[0] / length;});
 
+  // The solution of the shallow shelf equations with this temperature and
+  // thickness can be computed analytically; we'll use this to compare our
+  // numerical solutions against.
   using icepack::testing::TensorFn;
   const auto Velocity =
     TensorFn<2>([&](const Point<2>& x)
@@ -146,7 +161,7 @@ int main(int argc, char ** argv)
   const icepack::Field<2> h = interpolate(discretization, Thickness);
   const icepack::VectorField<2> u = interpolate(discretization, Velocity);
 
-  const icepack::Viscosity viscosity;
+  const icepack::Viscosity viscosity(rheology);
 
   const double n = viscosity.rheology.n;
   const double B = viscosity.rheology(temp);
@@ -267,6 +282,20 @@ int main(int argc, char ** argv)
                       [=](const auto err){return err < tolerance;}));
   }
 
+
+  TEST_SUITE("solving the diagnostic equations")
+  {
+    const icepack::Viscosity viscosity(rheology);
+    const icepack::IceShelf ice_shelf(viscosity);
+    const auto bcs = discretization.vector().make_zero_boundary_values(0);
+    icepack::numerics::ConvergenceLog log("newton");
+    const icepack::VectorField<2> v = ice_shelf.solve(h, theta, du, bcs, log);
+
+    if (verbose)
+      print_diffs(log.errors());
+
+    CHECK_FIELDS(u, v, tolerance);
+  }
 
   return 0;
 }

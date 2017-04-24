@@ -34,6 +34,11 @@ icepack_tests(
   ssa
 )
 
+icepack_exec(ssa)
+icepack_test(ssa_basic ssa)
+icepack_test(ssa_refined ssa "--refined")
+icepack_test(ssa_quadratic ssa "--quadratic")
+
 if(ICEPACK_TEST_COVERAGE)
   setup_target_for_coverage(coverage ctest coverage)
 endif()
