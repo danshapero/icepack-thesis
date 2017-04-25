@@ -42,7 +42,8 @@ namespace icepack
     constraints_.close();
 
     dealii::DynamicSparsityPattern dsp(dof_handler_.n_dofs());
-    dealii::DoFTools::make_sparsity_pattern(dof_handler_, dsp);
+    dealii::DoFTools::
+      make_sparsity_pattern(dof_handler_, dsp, constraints_, true);
     sparsity_pattern_.copy_from(dsp);
 
     mass_matrix_.reinit(sparsity_pattern_);
