@@ -109,6 +109,11 @@ namespace icepack
      */
     Discretization(const Triangulation<dim>& tria, unsigned int degree);
 
+    /**
+     * Destructor; frees all memory used by the discretization.
+     */
+    virtual ~Discretization();
+
 
     /**
      * Return a reference to the underlying geometry for this discretization.

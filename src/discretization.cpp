@@ -122,6 +122,9 @@ namespace icepack
   ) : ranks_{{ {tria, p, 0}, {tria, p, 1} }}
   {}
 
+  template <int dim>
+  Discretization<dim>::~Discretization()
+  {}
 
   template <int dim>
   const Triangulation<dim>& Discretization<dim>::triangulation() const
