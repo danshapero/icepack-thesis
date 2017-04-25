@@ -3,6 +3,7 @@ set(SOURCES
   utilities.cpp
   discretization.cpp
   field.cpp
+  numerics/convergence_log.cpp
   physics/ssa.cpp
 )
 

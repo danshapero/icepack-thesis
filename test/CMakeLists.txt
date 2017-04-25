@@ -29,8 +29,9 @@ endfunction(icepack_tests)
 icepack_tests(
   discretization
   field
-  ssa
   optimization
+  convergence_log
+  ssa
 )
 
 if(ICEPACK_TEST_COVERAGE)
