@@ -30,6 +30,7 @@ icepack_tests(
   discretization
   field
   ssa
+  optimization
 )
 
 if(ICEPACK_TEST_COVERAGE)
