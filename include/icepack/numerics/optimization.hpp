@@ -3,6 +3,7 @@
 #define ICEPACK_OPTIMIZATION_HPP
 
 #include <cmath>
+#include <cassert>
 
 namespace icepack
 {

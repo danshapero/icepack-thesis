@@ -31,7 +31,6 @@ icepack_tests(
   field
   optimization
   convergence_log
-  ssa
 )
 
 icepack_exec(ssa)
