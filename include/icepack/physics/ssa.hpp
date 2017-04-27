@@ -68,6 +68,14 @@ namespace icepack
       const VectorField<2>& velocity
     ) const;
 
+    virtual double
+    derivative(
+      const Field<2>& thickness,
+      const Field<2>& theta,
+      const VectorField<2>& velocity,
+      const VectorField<2>& direction
+    ) const;
+
     virtual dealii::SparseMatrix<double>
     hessian(
       const Field<2>& thickness,
@@ -87,7 +95,16 @@ namespace icepack
       const VectorField<2>& velocity
     ) const;
 
-    virtual DualVectorField<2> derivative(const Field<2>& thickness) const;
+    virtual DualVectorField<2>
+    derivative(
+      const Field<2>& thickness
+    ) const;
+
+    virtual double
+    derivative(
+      const Field<2>& thickness,
+      const VectorField<2>& direction
+    ) const;
   };
 
 

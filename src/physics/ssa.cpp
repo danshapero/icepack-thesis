@@ -221,9 +221,62 @@ namespace icepack
 
       std::get<1>(it)->get_dof_indices(local_dof_ids);
       f.coefficients().add(local_dof_ids, cell_derivative);
-    } // end of loop over `it`
+    }
 
     return f;
+  }
+
+
+  double Viscosity::derivative(
+    const Field<2>& h,
+    const Field<2>& theta,
+    const VectorField<2>& u,
+    const VectorField<2>& v
+  ) const
+  {
+    const auto& discretization = get_discretization(h, theta, u, v);
+    double df = 0.0;
+
+    const auto quad = discretization.quad();
+    const unsigned int n_q_points = quad.size();
+
+    std::vector<double> h_values(n_q_points);
+    std::vector<double> theta_values(n_q_points);
+    std::vector<SymmetricTensor<2, 2>> eps_u_values(n_q_points);
+    std::vector<SymmetricTensor<2, 2>> eps_v_values(n_q_points);
+
+    using icepack::DefaultFlags::flags;
+
+    FEValues<2> u_fe_values(discretization(1).finite_element(), quad, flags);
+    const auto& exv = u_fe_values[dealii::FEValuesExtractors::Vector(0)];
+
+    FEValues<2> h_fe_values(discretization(0).finite_element(), quad, flags);
+    const auto& exs = h_fe_values[dealii::FEValuesExtractors::Scalar(0)];
+
+    for (const auto& it: discretization)
+    {
+      u_fe_values.reinit(std::get<1>(it));
+      h_fe_values.reinit(std::get<0>(it));
+
+      exs.get_function_values(h.coefficients(), h_values);
+      exs.get_function_values(theta.coefficients(), theta_values);
+      exv.get_function_symmetric_gradients(u.coefficients(), eps_u_values);
+      exv.get_function_symmetric_gradients(v.coefficients(), eps_v_values);
+
+      for (unsigned int q = 0; q < n_q_points; ++q)
+      {
+        const double dx = u_fe_values.JxW(q);
+        const double H = h_values[q];
+        const double T = theta_values[q];
+        const SymmetricTensor<2, 2> eps_u = eps_u_values[q];
+        const SymmetricTensor<2, 2> M = membrane_stress(T, eps_u);
+        const SymmetricTensor<2, 2> eps_v = eps_v_values[q];
+
+        df += H * (eps_v * M) * dx;
+      }
+    }
+
+    return df;
   }
 
 
@@ -389,9 +442,17 @@ namespace icepack
 
       std::get<1>(it)->get_dof_indices(local_dof_ids);
       tau.coefficients().add(local_dof_ids, cell_derivative);
-    } // end of loop over `it`
+    }
 
     return tau;
+  }
+
+
+  double Gravity::derivative(const Field<2>& h, const VectorField<2>& v) const
+  {
+    // The gravitational stress action is linear in the velocity, so the
+    // directional derivative is just itself!
+    return action(h, v);
   }
 
 

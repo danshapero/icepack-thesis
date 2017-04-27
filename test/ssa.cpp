@@ -225,6 +225,8 @@ int main(int argc, char ** argv)
     const dealii::SparseMatrix<double> d2P = viscosity.hessian(h, theta, u);
 
     const double linear_term = inner_product(dP, du);
+    CHECK_REAL(linear_term, viscosity.derivative(h, theta, u, du), 1.0e-6);
+
     const double quadratic_term = d2P.matrix_norm_square(du.coefficients());
 
     const size_t num_trials = 12;
@@ -256,6 +258,7 @@ int main(int argc, char ** argv)
     const icepack::DualVectorField<2> dP = gravity.derivative(h);
 
     const double linear_term = inner_product(dP, du);
+    CHECK_REAL(linear_term, gravity.derivative(h, du), 1.0e-6);
 
     const size_t num_trials = 12;
     std::vector<double> errors(num_trials);
