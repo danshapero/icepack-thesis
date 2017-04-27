@@ -485,20 +485,20 @@ namespace icepack
     while(F0 - F > tolerance * initial_viscous_action)
     {
       // Compute the derivative of the action.
-      DualVectorField<2> df =
+      DualVectorField<2> dF =
         gravity.derivative(h) + viscosity.derivative(h, theta, u);
 
       // Compute the second derivative of the action.
       dealii::SparseMatrix<double> A = viscosity.hessian(h, theta, u);
       constraints.condense(A);
-      constraints.condense(df.coefficients());
+      constraints.condense(dF.coefficients());
       dealii::MatrixTools::
-        apply_boundary_values(bcs, A, p.coefficients(), df.coefficients());
+        apply_boundary_values(bcs, A, p.coefficients(), dF.coefficients());
 
       // Solve for the search direction using Newton's method.
       dealii::SparseDirectUMFPACK G;
       G.initialize(A);
-      G.vmult(p.coefficients(), df.coefficients());
+      G.vmult(p.coefficients(), dF.coefficients());
       constraints.distribute(p.coefficients());
 
       // Find the best guess for the velocity along the search diretion.
@@ -509,7 +509,15 @@ namespace icepack
           return gravity.action(h, v) + viscosity.action(h, theta, v);
         };
 
-      const double alpha = numerics::golden_section_search(f, 0.0, 1.0, 1.0e-2);
+      const auto& df =
+        [&](const double alpha)
+        {
+          const VectorField<2> v = u - alpha * p;
+          return
+            -(gravity.derivative(h, p) + viscosity.derivative(h, theta, v, p));
+        };
+
+      const double alpha = numerics::secant_search(f, df, 0.0, 1.0, 0.01, 0.1);
       F0 = F;
       F = f(alpha);
       convergence_log.add_entry(F);
