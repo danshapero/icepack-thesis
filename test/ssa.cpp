@@ -15,6 +15,21 @@ void print_diffs(const std::vector<double>& diffs)
 }
 
 
+void
+print_convergence_log(const icepack::numerics::ConvergenceLog& convergence_log)
+{
+  const std::vector<double>& values = convergence_log.values();
+  const std::vector<size_t>& levels = convergence_log.levels();
+  const size_t length = values.size();
+  for (size_t n = 0; n < length; ++n)
+  {
+    for (size_t k = 0; k < levels[n]; ++k)
+      std::cout << "| ";
+    std::cout << values[n] << "\n";
+  }
+}
+
+
 int main(int argc, char ** argv)
 {
   const auto args = icepack::testing::get_cmdline_args(argc, argv);
@@ -291,11 +306,11 @@ int main(int argc, char ** argv)
     const icepack::Viscosity viscosity(rheology);
     const icepack::IceShelf ice_shelf(viscosity);
     const auto bcs = discretization.vector().make_zero_boundary_values(0);
-    icepack::numerics::ConvergenceLog log("newton");
+    icepack::numerics::ConvergenceLog log;
     const icepack::VectorField<2> v = ice_shelf.solve(h, theta, du, bcs, log);
 
     if (verbose)
-      print_diffs(log.errors());
+      print_convergence_log(log);
 
     CHECK_FIELDS(u, v, tolerance);
   }

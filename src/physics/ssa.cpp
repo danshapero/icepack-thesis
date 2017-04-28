@@ -479,6 +479,7 @@ namespace icepack
     double F0 = std::numeric_limits<double>::infinity();
     const double initial_viscous_action = viscosity.action(h, theta, u);
     double F = gravity.action(h, u) + initial_viscous_action;
+    convergence_log.add_entry(0, F);
 
     // Use the initial value of the viscous power dissipation to scale the
     // stopping criterion.
@@ -517,10 +518,11 @@ namespace icepack
             -(gravity.derivative(h, p) + viscosity.derivative(h, theta, v, p));
         };
 
-      const double alpha = numerics::secant_search(f, df, 0.0, 1.0, 0.01, 0.1);
+      const double alpha =
+        numerics::secant_search(f, df, 0.0, 1.0, 0.01, 0.1, 1, convergence_log);
       F0 = F;
       F = f(alpha);
-      convergence_log.add_entry(F);
+      convergence_log.add_entry(0, F);
       u -= alpha * p;
     }
 

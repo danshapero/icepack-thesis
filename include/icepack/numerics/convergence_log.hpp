@@ -22,12 +22,6 @@ namespace icepack
     {
     public:
       /**
-       * Create an empty convergence log. Entries can be added using the method
-       * `add_entry` defined below.
-       */
-      ConvergenceLog(const std::string& name = "");
-
-      /**
        * Clear all the memory used by a convergence log.
        */
       virtual ~ConvergenceLog();
@@ -35,22 +29,22 @@ namespace icepack
       /**
        * Add a new entry to the convergence log.
        */
-      virtual ConvergenceLog& add_entry(const double error);
+      ConvergenceLog& add_entry(const size_t level, const double value);
 
       /**
-       * Return the name of the iterative method that this convergence log was
-       * for, i.e. "Newton", "L-BFGS", etc.
+       * Return a reference to the array describing the level of each iteration
+       * of the method.
        */
-      const std::string& method_name() const;
+      const std::vector<size_t>& levels() const;
 
       /**
-       * Return a reference to the array of errors. Hopefully it's decreasing.
+       * Return a reference to the array of values. Hopefully it's decreasing.
        */
-      const std::vector<double>& errors() const;
+      const std::vector<double>& values() const;
 
     protected:
-      std::string method_name_;
-      std::vector<double> errors_;
+      std::vector<size_t> levels_;
+      std::vector<double> values_;
     };
 
 

@@ -4,11 +4,13 @@
 
 #include <cmath>
 #include <cassert>
+#include <icepack/numerics/convergence_log.hpp>
 
 namespace icepack
 {
   namespace numerics
   {
+
     /**
      * Find the minimum of a 1D, convex function `f` within an interval `[a, b]`
      * by applying the secant method to its derivative `df`.
@@ -20,12 +22,16 @@ namespace icepack
       const double a,
       const double b,
       const double armijo,
-      const double wolfe
+      const double wolfe,
+      const size_t level,
+      ConvergenceLog& log
     )
     {
       const double f_a = f(a);
       const double df_a = df(a);
       assert(df_a < 0);
+
+      log.add_entry(level, f_a).add_entry(level, f(b));
 
       double x1 = a;
       double x2 = b;
@@ -48,10 +54,32 @@ namespace icepack
 
         x2 = x3;
         df2 = df(x2);
+
+        log.add_entry(level, f(x2));
       }
 
       return x2;
     }
+
+
+    /**
+     * Find the minimum of a 1D, convex function `f` within an interval `[a, b]`
+     * by applying the secant method to its derivative `df`.
+     */
+    template <typename Functional, typename Derivative>
+    double secant_search(
+      Functional&& f,
+      Derivative&& df,
+      const double a,
+      const double b,
+      const double armijo,
+      const double wolfe
+    )
+    {
+      ConvergenceLog log;
+      return secant_search(f, df, a, b, armijo, wolfe, 0, log);
+    }
+
 
     /**
      * Find the minimum of a 1D, convex function `f` within an interval `[a, b]`

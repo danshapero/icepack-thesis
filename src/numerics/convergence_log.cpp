@@ -5,27 +5,25 @@ namespace icepack
 {
   namespace numerics
   {
-    ConvergenceLog::ConvergenceLog(const std::string& name) :
-      method_name_(name), errors_(0)
-    {}
-
     ConvergenceLog::~ConvergenceLog()
     {}
 
-    ConvergenceLog& ConvergenceLog::add_entry(const double error)
+    ConvergenceLog&
+    ConvergenceLog::add_entry(const size_t level, const double value)
     {
-      errors_.push_back(error);
+      levels_.push_back(level);
+      values_.push_back(value);
       return *this;
     }
 
-    const std::string& ConvergenceLog::method_name() const
+    const std::vector<size_t>& ConvergenceLog::levels() const
     {
-      return method_name_;
+      return levels_;
     }
 
-    const std::vector<double>& ConvergenceLog::errors() const
+    const std::vector<double>& ConvergenceLog::values() const
     {
-      return errors_;
+      return values_;
     }
 
   } // namespace numerics
