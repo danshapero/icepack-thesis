@@ -27,6 +27,7 @@ endfunction(icepack_tests)
 
 
 icepack_tests(
+  grid_data
   discretization
   field
   optimization

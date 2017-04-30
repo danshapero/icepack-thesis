@@ -1,6 +1,7 @@
 
 set(SOURCES
   utilities.cpp
+  grid_data.cpp
   discretization.cpp
   field.cpp
   numerics/convergence_log.cpp
