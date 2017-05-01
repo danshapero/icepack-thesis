@@ -95,6 +95,9 @@ int main()
 
     test(Phi, Psi);
     test(U, V);
+
+    const auto v = icepack::interpolate(discretization, Xi, Chi);
+    CHECK_FUNC(v, V, tolerance);
   }
 
 

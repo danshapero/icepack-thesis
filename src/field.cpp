@@ -121,6 +121,34 @@ namespace icepack
   }
 
 
+  VectorField<2>
+  interpolate(
+    const Discretization<2>& discretization,
+    const dealii::Function<2>& phi1,
+    const dealii::Function<2>& phi2
+  )
+  {
+    class Helper : public dealii::TensorFunction<1, 2>
+    {
+      dealii::SmartPointer<const dealii::Function<2>> phi1_;
+      dealii::SmartPointer<const dealii::Function<2>> phi2_;
+
+    public:
+      Helper(const dealii::Function<2>& phi1, const dealii::Function<2>& phi2) :
+        phi1_(&phi1), phi2_(&phi2)
+      {}
+
+      dealii::Tensor<1, 2> value(const dealii::Point<2>& x) const
+      {
+        return dealii::Tensor<1, 2>{{phi1_->value(x), phi2_->value(x)}};
+      }
+    };
+
+    Helper helper(phi1, phi2);
+    return interpolate(discretization, helper);
+  }
+
+
   template Field<2> interpolate(const Discretization<2>&, const Function<2>&);
 
   template

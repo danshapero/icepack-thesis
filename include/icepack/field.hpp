@@ -267,6 +267,14 @@ namespace icepack
   );
 
 
+  VectorField<2>
+  interpolate(
+    const Discretization<2>& discretization,
+    const dealii::Function<2>& phi1,
+    const dealii::Function<2>& phi2
+  );
+
+
 
   /* -----------------------------------------
    * Field norms, inner products, and adjoints
