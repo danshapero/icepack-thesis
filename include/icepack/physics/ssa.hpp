@@ -65,7 +65,8 @@ namespace icepack
     derivative(
       const Field<2>& thickness,
       const Field<2>& theta,
-      const VectorField<2>& velocity
+      const VectorField<2>& velocity,
+      const dealii::ConstraintMatrix& constraints = dealii::ConstraintMatrix()
     ) const;
 
     virtual double
@@ -80,7 +81,8 @@ namespace icepack
     hessian(
       const Field<2>& thickness,
       const Field<2>& theta,
-      const VectorField<2>& velocity
+      const VectorField<2>& velocity,
+      const dealii::ConstraintMatrix& constraints = dealii::ConstraintMatrix()
     ) const;
   };
 
@@ -97,7 +99,8 @@ namespace icepack
 
     virtual DualVectorField<2>
     derivative(
-      const Field<2>& thickness
+      const Field<2>& thickness,
+      const dealii::ConstraintMatrix& constraints = dealii::ConstraintMatrix()
     ) const;
 
     virtual double
@@ -119,7 +122,7 @@ namespace icepack
       const Field<2>& thickness,
       const Field<2>& theta,
       const VectorField<2>& velocity,
-      const std::map<dealii::types::global_dof_index, double>& bcs,
+      const std::set<dealii::types::boundary_id>& dirichlet_boundaries,
       numerics::ConvergenceLog& convergence_log
     ) const;
 

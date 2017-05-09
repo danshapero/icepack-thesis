@@ -305,7 +305,7 @@ int main(int argc, char ** argv)
   {
     const icepack::Viscosity viscosity(rheology);
     const icepack::IceShelf ice_shelf(viscosity);
-    const auto bcs = discretization.vector().make_zero_boundary_values(0);
+    const std::set<dealii::types::boundary_id> bcs{0, 2, 3};
     icepack::numerics::ConvergenceLog log;
     const icepack::VectorField<2> v = ice_shelf.solve(h, theta, du, bcs, log);
 

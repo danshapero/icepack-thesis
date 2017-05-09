@@ -167,7 +167,8 @@ namespace icepack
   DualVectorField<2> Viscosity::derivative(
     const Field<2>& h,
     const Field<2>& theta,
-    const VectorField<2>& u
+    const VectorField<2>& u,
+    const dealii::ConstraintMatrix& constraints
   ) const
   {
     const auto& discretization = get_discretization(h, theta, u);
@@ -220,7 +221,9 @@ namespace icepack
       }
 
       std::get<1>(it)->get_dof_indices(local_dof_ids);
-      f.coefficients().add(local_dof_ids, cell_derivative);
+      constraints.distribute_local_to_global(
+        cell_derivative, local_dof_ids, f.coefficients()
+      );
     }
 
     return f;
@@ -283,7 +286,8 @@ namespace icepack
   dealii::SparseMatrix<double> Viscosity::hessian(
     const Field<2>& h,
     const Field<2>& theta,
-    const VectorField<2>& u
+    const VectorField<2>& u,
+    const dealii::ConstraintMatrix& constraints
   ) const
   {
     const auto& discretization = get_discretization(h, theta, u);
@@ -340,7 +344,7 @@ namespace icepack
       }
 
       std::get<1>(it)->get_dof_indices(local_dof_ids);
-      A.add(local_dof_ids, cell_matrix);
+      constraints.distribute_local_to_global(cell_matrix, local_dof_ids, A);
     }
 
     return A;
@@ -393,7 +397,10 @@ namespace icepack
   }
 
 
-  DualVectorField<2> Gravity::derivative(const Field<2>& h) const
+  DualVectorField<2> Gravity::derivative(
+    const Field<2>& h,
+    const dealii::ConstraintMatrix& constraints
+  ) const
   {
     const auto& discretization = get_discretization(h);
     DualVectorField<2> tau(discretization);
@@ -441,7 +448,9 @@ namespace icepack
       }
 
       std::get<1>(it)->get_dof_indices(local_dof_ids);
-      tau.coefficients().add(local_dof_ids, cell_derivative);
+      constraints.distribute_local_to_global(
+        cell_derivative, local_dof_ids, tau.coefficients()
+      );
     }
 
     return tau;
@@ -463,19 +472,53 @@ namespace icepack
   {}
 
 
+  namespace
+  {
+    dealii::ConstraintMatrix make_constraints(
+      const typename Discretization<2>::Rank& discretization_rank,
+      const std::set<dealii::types::boundary_id>& boundary_ids
+    )
+    {
+      const auto& dh = discretization_rank.dof_handler();
+      const auto merge_behavior = dealii::ConstraintMatrix::right_object_wins;
+
+      // First build the constraints for the Dirichlet boundary conditions.
+      dealii::ConstraintMatrix constraints;
+      for (const auto& id: boundary_ids)
+      {
+        dealii::ConstraintMatrix boundary_constraints;
+        dealii::DoFTools::
+          make_zero_boundary_constraints(dh, id, boundary_constraints);
+        constraints.merge(boundary_constraints, merge_behavior);
+      }
+
+      // Then merge in the hanging node constraints.
+      const auto& hanging_node_constraints = discretization_rank.constraints();
+      constraints.merge(hanging_node_constraints, merge_behavior);
+
+      constraints.close();
+      return constraints;
+    }
+  }
+
+
   VectorField<2> IceShelf::solve(
     const Field<2>& h,
     const Field<2>& theta,
     const VectorField<2>& u0,
-    const std::map<dealii::types::global_dof_index, double>& bcs,
+    const std::set<dealii::types::boundary_id>& dirichlet_boundary_ids,
     numerics::ConvergenceLog& convergence_log
   ) const
   {
     const auto& discretization = get_discretization(h, theta, u0);
+    const auto constraints =
+      make_constraints(discretization.vector(), dirichlet_boundary_ids);
+
     VectorField<2> u(u0);
     VectorField<2> p(discretization);
-    const auto& constraints = discretization.vector().constraints();
 
+    // Compute the initial value of the action. Use the initial viscous action
+    // as a scale to determine when the method has converged.
     double F0 = std::numeric_limits<double>::infinity();
     const double initial_viscous_action = viscosity.action(h, theta, u);
     double F = gravity.action(h, u) + initial_viscous_action;
@@ -487,14 +530,12 @@ namespace icepack
     {
       // Compute the derivative of the action.
       DualVectorField<2> dF =
-        gravity.derivative(h) + viscosity.derivative(h, theta, u);
+        gravity.derivative(h, constraints) +
+        viscosity.derivative(h, theta, u, constraints);
 
       // Compute the second derivative of the action.
-      dealii::SparseMatrix<double> A = viscosity.hessian(h, theta, u);
-      constraints.condense(A);
-      constraints.condense(dF.coefficients());
-      dealii::MatrixTools::
-        apply_boundary_values(bcs, A, p.coefficients(), dF.coefficients());
+      const dealii::SparseMatrix<double> A =
+        viscosity.hessian(h, theta, u, constraints);
 
       // Solve for the search direction using Newton's method.
       dealii::SparseDirectUMFPACK G;
