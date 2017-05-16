@@ -506,68 +506,52 @@ namespace icepack
     const Field<2>& h,
     const Field<2>& theta,
     const VectorField<2>& u0,
-    const std::set<dealii::types::boundary_id>& dirichlet_boundary_ids,
-    numerics::ConvergenceLog& convergence_log
+    const std::set<dealii::types::boundary_id>& dirichlet_boundary_ids
   ) const
   {
     const auto& discretization = get_discretization(h, theta, u0);
     const auto constraints =
       make_constraints(discretization.vector(), dirichlet_boundary_ids);
 
-    VectorField<2> u(u0);
-    VectorField<2> p(discretization);
+    const auto F =
+      [&](const VectorField<2>& v) -> double
+      {
+        return gravity.action(h, v) + viscosity.action(h, theta, v);
+      };
 
-    // Compute the initial value of the action. Use the initial viscous action
-    // as a scale to determine when the method has converged.
-    double F0 = std::numeric_limits<double>::infinity();
-    const double initial_viscous_action = viscosity.action(h, theta, u);
-    double F = gravity.action(h, u) + initial_viscous_action;
-    convergence_log.add_entry(0, F);
+    const auto dF =
+      [&](const VectorField<2>& v, const VectorField<2>& q) -> double
+      {
+        return gravity.derivative(h, q) + viscosity.derivative(h, theta, v, q);
+      };
 
-    // Use the initial value of the viscous power dissipation to scale the
-    // stopping criterion.
-    while(F0 - F > tolerance * initial_viscous_action)
-    {
-      // Compute the derivative of the action.
-      DualVectorField<2> dF =
-        gravity.derivative(h, constraints) +
-        viscosity.derivative(h, theta, u, constraints);
+    const auto P =
+      [&](const VectorField<2>& v) -> VectorField<2>
+      {
+        VectorField<2> p(discretization);
 
-      // Compute the second derivative of the action.
-      const dealii::SparseMatrix<double> A =
-        viscosity.hessian(h, theta, u, constraints);
+        // Compute the derivative of the action.
+        DualVectorField<2> df =
+          gravity.derivative(h, constraints) +
+          viscosity.derivative(h, theta, v, constraints);
 
-      // Solve for the search direction using Newton's method.
-      dealii::SparseDirectUMFPACK G;
-      G.initialize(A);
-      G.vmult(p.coefficients(), dF.coefficients());
-      constraints.distribute(p.coefficients());
+        // Compute the second derivative of the action.
+        const dealii::SparseMatrix<double> A =
+          viscosity.hessian(h, theta, v, constraints);
 
-      // Find the best guess for the velocity along the search diretion.
-      const auto& f =
-        [&](const double alpha)
-        {
-          const VectorField<2> v = u - alpha * p;
-          return gravity.action(h, v) + viscosity.action(h, theta, v);
-        };
+        // Solve for the search direction using Newton's method.
+        dealii::SparseDirectUMFPACK G;
+        G.initialize(A);
+        G.vmult(p.coefficients(), df.coefficients());
+        constraints.distribute(p.coefficients());
+        p *= -1;
 
-      const auto& df =
-        [&](const double alpha)
-        {
-          const VectorField<2> v = u - alpha * p;
-          return
-            -(gravity.derivative(h, p) + viscosity.derivative(h, theta, v, p));
-        };
+        return p;
+      };
 
-      const double alpha =
-        numerics::secant_search(f, df, 0.0, 1.0, 0.01, 0.1, 1, convergence_log);
-      F0 = F;
-      F = f(alpha);
-      convergence_log.add_entry(0, F);
-      u -= alpha * p;
-    }
-
-    return u;
+    const double initial_viscous_action = viscosity.action(h, theta, u0);
+    return
+      numerics::newton_search(u0, F, dF, P, initial_viscous_action * tolerance);
   }
 
 } // namespace icepack

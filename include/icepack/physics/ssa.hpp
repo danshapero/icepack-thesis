@@ -4,7 +4,6 @@
 
 #include <deal.II/base/symmetric_tensor.h>
 #include <icepack/field.hpp>
-#include <icepack/numerics/convergence_log.hpp>
 
 namespace icepack
 {
@@ -122,8 +121,7 @@ namespace icepack
       const Field<2>& thickness,
       const Field<2>& theta,
       const VectorField<2>& velocity,
-      const std::set<dealii::types::boundary_id>& dirichlet_boundaries,
-      numerics::ConvergenceLog& convergence_log
+      const std::set<dealii::types::boundary_id>& dirichlet_boundaries
     ) const;
 
     const Gravity gravity;

@@ -4,80 +4,85 @@
 
 #include <cmath>
 #include <cassert>
-#include <icepack/numerics/convergence_log.hpp>
+#include <limits>
 
 namespace icepack
 {
   namespace numerics
   {
-
     /**
      * Find the minimum of a 1D, convex function `f` within an interval `[a, b]`
      * by applying the secant method to its derivative `df`.
      */
-    template <typename Functional, typename Derivative>
+    template <typename T, typename Functional, typename Derivative>
     double secant_search(
-      Functional&& f,
-      Derivative&& df,
-      const double a,
-      const double b,
-      const double armijo,
-      const double wolfe,
-      const size_t level,
-      ConvergenceLog& log
-    )
-    {
-      const double f_a = f(a);
-      const double df_a = df(a);
-      assert(df_a < 0);
-
-      log.add_entry(level, f_a).add_entry(level, f(b));
-
-      double x1 = a;
-      double x2 = b;
-      double df1 = df_a;
-      double df2 = df(x2);
-
-      // These are respectively the Armijo and Wolfe conditions; the Armijo
-      // condition states that the objective function has to decrease enough
-      // from its starting value, and the second that the derivative of the
-      // objective function must be smaller in absolute value than its starting
-      // value. See Nocedal and Wright for more explanation.
-      while (not ((f(x2) < f_a + armijo * (x2 - a) * df_a)
-                  and
-                  (std::abs(df2) < wolfe * std::abs(df_a))))
-      {
-        const double x3 = x2 - df2 * (x2 - x1) / (df2 - df1);
-
-        x1 = x2;
-        df1 = df2;
-
-        x2 = x3;
-        df2 = df(x2);
-
-        log.add_entry(level, f(x2));
-      }
-
-      return x2;
-    }
-
-
-    /**
-     * Find the minimum of a 1D, convex function `f` within an interval `[a, b]`
-     * by applying the secant method to its derivative `df`.
-     */
-    template <typename Functional, typename Derivative>
-    double secant_search(
-      Functional&& f,
-      Derivative&& df,
-      const double a,
-      const double b,
+      const Functional& F,
+      const Derivative& dF,
+      const T& x0,
+      const T& p,
+      const double endpoint,
       const double armijo,
       const double wolfe
     )
     {
-      ConvergenceLog log;
-      return secant_search(f, df, a, b, armijo, wolfe, 0, log);
+      const double f0 = F(x0);
+      const double df0 = dF(x0, p);
+      assert(df0 < 0);
+
+      double a1 = 0.0;
+      double df1 = df0;
+
+      double a2 = endpoint;
+      T x = x0 + a2 * p;
+      double f2 = F(x);
+      double df2 = dF(x, p);
+
+      while (not ((f2 < f0 + armijo * a2 * df0)
+                  and
+                  (std::abs(df2) < wolfe * std::abs(df0))))
+      {
+        const double a3 = a2 - df2 * (a2 - a1) / (df2 - df1);
+
+        a1 = a2;
+        df1 = df2;
+
+        a2 = a3;
+        x = x0 + a2 * p;
+        f2 = F(x);
+        df2 = dF(x, p);
+      }
+
+      return a2;
+    }
+
+
+    template
+      <typename T, typename Functional, typename Derivative, typename Direction>
+    T newton_search(
+      const T& x0,
+      const Functional& F,
+      const Derivative& dF,
+      const Direction& P,
+      const double tolerance
+    )
+    {
+      T x(x0);
+      T p(x0);
+
+      double f0 = std::numeric_limits<double>::infinity();
+      double f = F(x);
+
+      while (f0 - f > tolerance)
+      {
+        p = P(x);
+
+        const double alpha = secant_search(F, dF, x, p, 1.0, 0.01, 0.1);
+        f0 = f;
+        x += alpha * p;
+        f = F(x);
+      }
+
+      return x;
     }
 
   } // namespace numerics

@@ -7,7 +7,8 @@ int main()
 {
   const double x0 = 3.0;
   const auto f = [=](const double x) { return std::cosh(x - x0); };
-  const auto df = [=](const double x) { return std::sinh(x - x0); };
+  const auto df =
+    [=](const double x, const double p) { return std::sinh(x - x0) * p; };
 
   const double a = 0.0;
   const double b = 10.0;
@@ -20,8 +21,9 @@ int main()
     const double wolfe = 1.0e-6;
     const double armijo = 1.0e-2;
 
+    const double p = (df(a, 1.0) < 0) ? 1 : -1;
     const double x =
-      icepack::numerics::secant_search(f, df, a, b, armijo, wolfe);
+      icepack::numerics::secant_search(f, df, a, p, b, armijo, wolfe);
     CHECK_REAL(x, x0, 1.0e-6);
   }
 
