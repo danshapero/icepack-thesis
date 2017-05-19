@@ -114,18 +114,26 @@ namespace icepack
   {
     IceShelf(
       const Viscosity& viscosity,
+      const std::set<dealii::types::boundary_id>& dirichlet_boundary_ids = {0},
       const double convergence_tolerance = 1.0e-6
     );
 
     VectorField<2> solve(
       const Field<2>& thickness,
       const Field<2>& theta,
+      const VectorField<2>& velocity
+    ) const;
+
+    VectorField<2> solve(
+      const Field<2>& thickness,
+      const Field<2>& theta,
       const VectorField<2>& velocity,
-      const std::set<dealii::types::boundary_id>& dirichlet_boundaries
+      const std::set<dealii::types::boundary_id>& dirichlet_boundary_ids
     ) const;
 
     const Gravity gravity;
     const Viscosity viscosity;
+    const std::set<dealii::types::boundary_id> dirichlet_boundary_ids;
     const double tolerance;
   };
 

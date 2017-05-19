@@ -289,9 +289,9 @@ int main(int argc, char ** argv)
   TEST_SUITE("solving the diagnostic equations")
   {
     const icepack::Viscosity viscosity(rheology);
-    const icepack::IceShelf ice_shelf(viscosity);
-    const std::set<dealii::types::boundary_id> bcs{0, 2, 3};
-    const icepack::VectorField<2> v = ice_shelf.solve(h, theta, du, bcs);
+    const std::set<dealii::types::boundary_id> boundary_ids{0, 2, 3};
+    const icepack::IceShelf ice_shelf(viscosity, boundary_ids);
+    const icepack::VectorField<2> v = ice_shelf.solve(h, theta, du);
 
     CHECK_FIELDS(u, v, tolerance);
   }
