@@ -31,7 +31,6 @@ icepack_tests(
   discretization
   field
   optimization
-  convergence_log
 )
 
 icepack_exec(ssa)
