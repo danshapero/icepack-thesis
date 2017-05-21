@@ -1,0 +1,4 @@
+
+# Ignore anything in the build directory
+build*
+
