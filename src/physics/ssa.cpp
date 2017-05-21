@@ -510,7 +510,8 @@ namespace icepack
     const Field<2>& h,
     const Field<2>& theta,
     const VectorField<2>& u0,
-    const std::set<dealii::types::boundary_id>& boundary_ids
+    const std::set<dealii::types::boundary_id>& boundary_ids,
+    const SolveOptions options
   ) const
   {
     const auto& discretization = get_discretization(h, theta, u0);
@@ -554,18 +555,19 @@ namespace icepack
       };
 
     const double initial_viscous_action = viscosity.action(h, theta, u0);
-    return
-      numerics::newton_search(u0, F, dF, P, initial_viscous_action * tolerance);
+    const double tol = initial_viscous_action * tolerance;
+    return numerics::newton_search(u0, F, dF, P, tol, options);
   }
 
 
   VectorField<2> IceShelf::solve(
     const Field<2>& h,
     const Field<2>& theta,
-    const VectorField<2>& u0
+    const VectorField<2>& u0,
+    const SolveOptions options
   ) const
   {
-    return solve(h, theta, u0, dirichlet_boundary_ids);
+    return solve(h, theta, u0, dirichlet_boundary_ids, options);
   }
 
 } // namespace icepack

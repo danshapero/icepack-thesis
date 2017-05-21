@@ -4,6 +4,7 @@
 
 #include <deal.II/base/symmetric_tensor.h>
 #include <icepack/field.hpp>
+#include <icepack/numerics/optimization.hpp>
 
 namespace icepack
 {
@@ -118,17 +119,21 @@ namespace icepack
       const double convergence_tolerance = 1.0e-6
     );
 
+    using SolveOptions = numerics::NewtonSearchOptions<VectorField<2>>;
+
     VectorField<2> solve(
       const Field<2>& thickness,
       const Field<2>& theta,
-      const VectorField<2>& velocity
+      const VectorField<2>& velocity,
+      const SolveOptions solve_options = SolveOptions()
     ) const;
 
     VectorField<2> solve(
       const Field<2>& thickness,
       const Field<2>& theta,
       const VectorField<2>& velocity,
-      const std::set<dealii::types::boundary_id>& dirichlet_boundary_ids
+      const std::set<dealii::types::boundary_id>& dirichlet_boundary_ids,
+      const SolveOptions solve_options = SolveOptions()
     ) const;
 
     const Gravity gravity;

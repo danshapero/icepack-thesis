@@ -291,9 +291,21 @@ int main(int argc, char ** argv)
     const icepack::Viscosity viscosity(rheology);
     const std::set<dealii::types::boundary_id> boundary_ids{0, 2, 3};
     const icepack::IceShelf ice_shelf(viscosity, boundary_ids);
-    const icepack::VectorField<2> v = ice_shelf.solve(h, theta, du);
+
+    size_t iterations = 0;
+    const auto callback =
+      [&](const double action, const icepack::VectorField<2>&)
+      {
+        if (verbose)
+          std::cout << "  " << iterations << ": " << action << "\n";
+        iterations += 1;
+      };
+
+    const icepack::IceShelf::SolveOptions options{callback};
+    const icepack::VectorField<2> v = ice_shelf.solve(h, theta, du, options);
 
     CHECK_FIELDS(u, v, tolerance);
+    CHECK(iterations != 0);
   }
 
   return 0;
