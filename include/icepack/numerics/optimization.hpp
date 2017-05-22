@@ -6,6 +6,7 @@
 #include <cassert>
 #include <limits>
 #include <functional>
+#include <icepack/numerics/sequence.hpp>
 
 namespace icepack
 {
@@ -61,40 +62,36 @@ namespace icepack
       const LineSearchOptions<T> options = LineSearchOptions<T>()
     )
     {
-      const double f0 = F(x0);
-      const double df0 = dF(x0, p);
-      assert(df0 < 0);
+      Sequence<double> as(3), fs(3), dfs(3);
 
-      options.callback(f0, x0);
+      as[0] = 0.0;
+      as[1] = endpoint;
+      fs[0] = F(x0);
+      dfs[0] = dF(x0, p);
+      assert(dfs[0] < 0);
+      T x(x0);
 
-      double a1 = 0.0;
-      double df1 = df0;
+      const auto stopping_criterion =
+        [=](const double a, const double f, const double df)
+        {
+          return (f < fs[0] + options.armijo * a * dfs[0]) and
+                 (std::abs(df) < options.wolfe * std::abs(dfs[0]));
+        };
 
-      double a2 = endpoint;
-      T x = x0 + a2 * p;
-      double f2 = F(x);
-      double df2 = dF(x, p);
-
-      options.callback(f2, x);
-
-      while (not ((f2 < f0 + options.armijo * a2 * df0)
-                  and
-                  (std::abs(df2) < options.wolfe * std::abs(df0))))
+      size_t n = 0;
+      do
       {
-        const double a3 = a2 - df2 * (a2 - a1) / (df2 - df1);
+        n += 1;
+        x = x0 + as[n] * p;
+        fs[n] = F(x);
+        dfs[n] = dF(x, p);
+        options.callback(fs[n], x);
 
-        a1 = a2;
-        df1 = df2;
+        const double d2f = (dfs[n] - dfs[n - 1]) / (as[n] - as[n - 1]);
+        as[n + 1] = as[n] - dfs[n] / d2f;
+      } while (not stopping_criterion(as[n], fs[n], dfs[n]));
 
-        a2 = a3;
-        x = x0 + a2 * p;
-        f2 = F(x);
-        df2 = dF(x, p);
-
-        options.callback(f2, x);
-      }
-
-      return a2;
+      return as[n];
     }
 
 
