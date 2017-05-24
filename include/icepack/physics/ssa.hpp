@@ -114,8 +114,8 @@ namespace icepack
   struct IceShelf
   {
     IceShelf(
-      const Viscosity& viscosity,
       const std::set<dealii::types::boundary_id>& dirichlet_boundary_ids = {0},
+      const Viscosity& viscosity = Viscosity(ViscousRheology()),
       const double convergence_tolerance = 1.0e-6
     );
 

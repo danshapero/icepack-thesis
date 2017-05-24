@@ -466,8 +466,8 @@ namespace icepack
 
 
   IceShelf::IceShelf(
-    const Viscosity& viscosity_,
     const std::set<dealii::types::boundary_id>& dirichlet_boundary_ids_,
+    const Viscosity& viscosity_,
     const double tolerance_
   ) : gravity(),
       viscosity(viscosity_),

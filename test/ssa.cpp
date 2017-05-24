@@ -288,9 +288,8 @@ int main(int argc, char ** argv)
 
   TEST_SUITE("solving the diagnostic equations")
   {
-    const icepack::Viscosity viscosity(rheology);
-    const std::set<dealii::types::boundary_id> boundary_ids{0, 2, 3};
-    const icepack::IceShelf ice_shelf(viscosity, boundary_ids);
+    const std::set<dealii::types::boundary_id> dirichlet_boundary_ids{0, 2, 3};
+    const icepack::IceShelf ice_shelf(dirichlet_boundary_ids);
 
     size_t iterations = 0;
     const auto callback =
