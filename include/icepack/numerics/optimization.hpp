@@ -13,10 +13,41 @@ namespace icepack
   namespace numerics
   {
     /**
-     * This struct is used for storing options for line searches, such as the
-     * Armijo and Wolfe parameters; these determine when a line search has
-     * reduced the value and the gradient of the objective function enough to
-     * terminate the line search.
+     * @brief Struct that stores various options for line searches
+     *
+     * The decision for when to stop a line search depends on two parameters.
+     *
+     * When performing a line search, we would like to guarantee that the
+     * objective function has decreased enough; if it hasn't, we should keep
+     * searching. We can say that \f$\alpha\f$ is a good enough result for the
+     * line search if the objective function has been reduced by some multiple
+     * of \f$\alpha\f$ and the rate of change of the objective along the search
+     * direction:
+     * \f[
+     *   f(x + \alpha \cdot p) \le f(x) + c_1\alpha\langle df(x), p\rangle
+     * \f]
+     * keeping in mind that, since the search direction \f$p\f$ is a descent
+     * direction, the \f$\langle df(x), p\rangle < 0\f$. This is the *Armijo*
+     * condition, and \f$c_1\f$ is called the Armijo parameter.
+     *
+     * The second desirable property of a line search is that the derivative of
+     * the objective function is closer to 0 than it was before:
+     * \f[
+     *   |\langle df(x + \alpha\cdot p), p\rangle| \le c_2|\langle df(x), p\rangle|.
+     * \f]
+     * This is the *Wolfe* condition, and \f$c_2\f$ is the Wolfe parameter.
+     *
+     * The Armijo and Wolfe parameters dictate how much exactness we use in
+     * performing the line search. (Usually one has \f$c_1 < c_2\f$.) The degree
+     * to which you use a very accurate line search depends on how good your
+     * search direction is and how expensive it is to compute. For more
+     * information, see Nocedal and Wright, or the [Wikipedia article]
+     * (https://en.wikipedia.org/wiki/Wolfe_conditions).
+     *
+     * Additionally, this struct stores an optional callback, a function that
+     * can be invoked on every iteration of the line search. This is useful for
+     * monitoring the convergence of the optimization algorithms in the event
+     * that something breaks.
      */
     template <typename T>
     struct LineSearchOptions
@@ -26,6 +57,12 @@ namespace icepack
 
       using Callback = std::function<void(const double, const T&)>;
 
+      /**
+       * Construct a new set of line search options. The default values of the
+       * Armijo and Wolfe parameters are set to the values suggested in Nocedal
+       * and Wright for quasi-Newton methods that have accurate approximations
+       * of the Hessian matrix.
+       */
       LineSearchOptions(
         const double armijo = armijo_default,
         const double wolfe = wolfe_default,
@@ -49,8 +86,11 @@ namespace icepack
 
 
     /**
-     * Find the minimum of a 1D, convex function `f` within an interval `[a, b]`
-     * by applying the secant method to its derivative `df`.
+     * @brief Find the minimum of a convex functional along a search direction.
+     *
+     * This routine requires procedures for evaluating the objective functional
+     * and its directional derivative. This procedure is used in (quasi-) Newton
+     * methods for optimization.
      */
     template <typename T, typename Functional, typename Derivative>
     double line_search(
@@ -95,6 +135,16 @@ namespace icepack
     }
 
 
+    /**
+     * @brief Struct that stores various options Newton search.
+     *
+     * The possible options include a callback to be invoked at every iteration
+     * of the Newton search, and the options passed to the line search along the
+     * search direction at every step. The line search options should be chosen
+     * based on the method you're using to compute the search direction; you'll
+     * want a more accurate line search when using the full Newton update than
+     * you would for, say, gradient descent.
+     */
     template <typename T>
     struct NewtonSearchOptions
     {
@@ -117,6 +167,26 @@ namespace icepack
     {}
 
 
+    /**
+     * @brief Find an approximate minimizer of a convex objective functional
+     * using a (quasi-) Newton method.
+     *
+     * This routine requires procedures for evaluating the objective functional,
+     * the directional derivative, and computing a search direction. The search
+     * direction could be computed using the full Newton update, or some quasi-
+     * Newton approximation such as L-BFGS.
+     *
+     * The procedure for computing the search direction has to return an object
+     * with the same type `T` as the domain of the objective functional. For
+     * example, the domain type `T` for solving the shallow shelf equations is
+     * `VectorField<2>`. Pure gradient descent, which uses the derivative of the
+     * objective functional as a search direction, does not meet this criterion;
+     * the derivative of the objective is of type `DualVectorField<2>`. To
+     * compute a search direction, we need some way of mapping back from
+     * dual fields to primal fields. The Newton search direction, which is
+     * obtained by mutliplying the derivative by the inverse of the second
+     * derivative operator, does exactly that.
+     */
     template
       <typename T, typename Functional, typename Derivative, typename Direction>
     T newton_search(

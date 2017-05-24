@@ -15,18 +15,27 @@ namespace icepack
   using dealii::Tensor;
   using dealii::Vector;
 
-
   /**
    * This type is for keeping track of whether a field is in the function space
    * \f$H^1\f$, i.e. the primal space, or in the dual space \f$H^{-1}\f$.
+   *
+   * @ingroup field
    */
   enum Duality {primal, dual};
 
 
   /**
-   * This is a curiously recurring template pattern base class representing any
-   * type that can be converted to a field, including algebraic expressions on
-   * fields.
+   * @brief CRTP base class representing any type that can be converted to a
+   * field.
+   *
+   * The curiously recurring template pattern (CRTP) is an important component
+   * in implementing expression templates. See the documentation for the \ref
+   * algebra module for an explanation of expression templates. For more
+   * information about the curiously recurring template pattern, see the
+   * [Wikipedia article]
+   * (https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern).
+   *
+   * @ingroup algebra
    */
   template <int rank, int dim, Duality duality, class Expr>
   class FieldExpr
@@ -50,9 +59,8 @@ namespace icepack
 
 
   /**
-   * This is a base class for any physical field discretized using a finite
-   * element expansion. It is used as the return and argument types of all
-   * glacier model objects (see `include/icepack/glacier_models`).
+   * @brief This class represents any physical field (scalar or vector)
+   * discretized in some finite element representation.
    *
    * Fields are distinguished by:
    *   - their tensor rank, i.e. 0 for a scalar field, 1 for a vector field
@@ -98,13 +106,14 @@ namespace icepack
    * fields, we guarantee that the dual fields are those which have a factor of
    * the mass matrix, and primal fields do not. Moreover, dual fields have
    * different units: an extra factor of area in 2D and volume in 3D.
+   *
+   * @ingroup field
    */
   template <int rank, int dim, Duality duality = primal>
   class FieldType :
     public FieldExpr<rank, dim, duality, FieldType<rank, dim, duality>>
   {
   public:
-
     /**
      * Construct a field which is 0 everywhere given the data about its finite
      * element discretization.
@@ -238,12 +247,16 @@ namespace icepack
   };
 
 
-  /**
-   * Some sensible type aliases for different sorts of fields.
-   */
+  /** Alias `Field` to refer to scalar, primal fields. */
   template <int dim> using Field = FieldType<0, dim, primal>;
+
+  /** Same as above for vector fields. */
   template <int dim> using VectorField = FieldType<1, dim, primal>;
+
+  /** Alias `DualField` to refer to linear functionals on scalar fields. */
   template <int dim> using DualField = FieldType<0, dim, dual>;
+
+  /** Same as above for linear functionals on vector fields. */
   template <int dim> using DualVectorField = FieldType<1, dim, dual>;
 
 
@@ -252,6 +265,13 @@ namespace icepack
    * Interpolating functions to finite element representation
    * -------------------------------------------------------- */
 
+  /**
+   * Given a discretization and an analytical description of a scalar function,
+   * represented by a `dealii::Function` object, interpolate this function to
+   * the finite element basis.
+   *
+   * @ingroup interpolation
+   */
   template <int dim>
   Field<dim> interpolate(
     const Discretization<dim>& discretization,
@@ -259,6 +279,13 @@ namespace icepack
   );
 
 
+  /**
+   * Given a discretization and an analytical description of a vector field,
+   * represented by a `dealii::TensorFunction` object, interpolate this function
+   * to the finite element basis.
+   *
+   * @ingroup interpolation
+   */
   template <int dim>
   VectorField<dim>
   interpolate(
@@ -267,6 +294,12 @@ namespace icepack
   );
 
 
+  /**
+   * Given a discretization and a pair of scalar functions, interpolate them to
+   * a vector field in the finite element basis.
+   *
+   * @ingroup interpolation
+   */
   VectorField<2>
   interpolate(
     const Discretization<2>& discretization,
@@ -286,6 +319,15 @@ namespace icepack
     return phi.discretization();
   }
 
+  /**
+   * Return the discretization of an arbitrary number of fields and vector
+   * fields. If all of these fields do not have the same discretization, throw
+   * an error. (Most of the operations throughout this library required that,
+   * for any operations on more than one field, all fields must have the same
+   * discretization.)
+   *
+   * @ingroup field
+   */
   template <typename F, typename... Args>
   const auto& get_discretization(const F& phi, Args&&... args)
   {
@@ -300,6 +342,8 @@ namespace icepack
   /**
    * Convert a primal field to a dual field. This amounts to multiplying the
    * Galerkin expansion coefficients of the primal field by the mass matrix.
+   *
+   * @ingroup algebra
    */
   template <int rank, int dim>
   FieldType<rank, dim, dual> transpose(const FieldType<rank, dim, primal>& phi)
@@ -318,6 +362,8 @@ namespace icepack
    * Convert a dual field to a primal field. This amounts to multiplying the
    * Galerkin expansion coefficients of the dual field by the inverse of the
    * mass matrix.
+   *
+   * @ingroup algebra
    */
   template <int rank, int dim>
   FieldType<rank, dim, primal> transpose(const FieldType<rank, dim, dual>& f)
@@ -344,7 +390,12 @@ namespace icepack
 
 
   /**
-   * Compute the L2 norm of a field.
+   * Compute the L2 norm of a field:
+   * \f[
+   *   \|u\|_{L^2} = \left(\int_\Omega|u|^2dx\right)^{1/2}.
+   * \f]
+   *
+   * @ingroup algebra
    */
   template <int rank, int dim>
   double norm(const FieldType<rank, dim>& phi)
@@ -354,7 +405,12 @@ namespace icepack
   }
 
   /**
-   * Compute the L2 inner product of two fields.
+   * Compute the L2 inner product of two fields:
+   * \f[
+   *   (u, v)_{L^2} = \int_\Omega u\cdot v\hspace{2pt}dx.
+   * \f]
+   *
+   * @ingroup algebra
    */
   template <int rank, int dim>
   double inner_product(
@@ -368,22 +424,26 @@ namespace icepack
   }
 
   /**
-   * Compute the duality pairing between a linear functional `phi1` and a field
-   * `phi2`.
+   * Compute the duality pairing between a linear functional \f$f\f$ and a field
+   * \f$\phi\f$.
+   *
+   * @ingroup algebra
    */
   template <int rank, int dim>
   double inner_product(
-    const FieldType<rank, dim, dual>& phi1,
-    const FieldType<rank, dim, primal>& phi2
+    const FieldType<rank, dim, dual>& f,
+    const FieldType<rank, dim, primal>& phi
   )
   {
-    get_discretization(phi1, phi2);
-    return phi1.coefficients() * phi2.coefficients();
+    get_discretization(f, phi);
+    return f.coefficients() * phi.coefficients();
   }
 
   /**
    * Compute the distance between two fields in the L2 norm. This is equal to
    * the norm of the difference of the fields.
+   *
+   * @ingroup algebra
    */
   template <int rank, int dim>
   double dist(
@@ -473,6 +533,11 @@ namespace icepack
   }
 
 
+  /**
+   * Multiply the field by a given scalar in place.
+   *
+   * @ingroup algebra
+   */
   template <int rank, int dim, Duality duality>
   FieldType<rank, dim, duality>&
   operator *=(FieldType<rank, dim, duality>& phi, const double alpha)
@@ -481,6 +546,11 @@ namespace icepack
     return phi;
   }
 
+  /**
+   * Divide the given field by a scalar in place.
+   *
+   * @ingroup algebra
+   */
   template <int rank, int dim, Duality duality>
   FieldType<rank, dim, duality>&
   operator /=(FieldType<rank, dim, duality>& phi, const double alpha)
@@ -490,6 +560,11 @@ namespace icepack
   }
 
 
+  /**
+   * Add another field to the current field in place.
+   *
+   * @ingroup algebra
+   */
   template <int rank, int dim, Duality duality>
   FieldType<rank, dim, duality>&
   operator +=(FieldType<rank, dim, duality>& phi,
@@ -501,6 +576,11 @@ namespace icepack
   }
 
 
+  /**
+   * Add a field expression to the current field in place.
+   *
+   * @ingroup algebra
+   */
   template <int rank, int dim, Duality duality, class Expr>
   FieldType<rank, dim, duality>&
   operator +=(FieldType<rank, dim, duality>& phi,
@@ -515,6 +595,11 @@ namespace icepack
   }
 
 
+  /**
+   * Subtract another field from the current field in place.
+   *
+   * @ingroup algebra
+   */
   template <int rank, int dim, Duality duality>
   FieldType<rank, dim, duality>&
   operator -=(FieldType<rank, dim, duality>& phi,
@@ -526,6 +611,11 @@ namespace icepack
   }
 
 
+  /**
+   * Subtract a field expression from the current field in place.
+   *
+   * @ingroup algebra
+   */
   template <int rank, int dim, Duality duality, class Expr>
   FieldType<rank, dim, duality>&
   operator -=(FieldType<rank, dim, duality>& phi,
@@ -540,6 +630,12 @@ namespace icepack
   }
 
 
+  /**
+   * @brief Proxy object representing the result of multiplying some field
+   * expression by a scalar.
+   *
+   * @ingroup algebra
+   */
   template <int rank, int dim, Duality duality, class Expr>
   class ScalarMultiplyExpr :
     public FieldExpr<rank, dim, duality,
@@ -566,6 +662,12 @@ namespace icepack
   };
 
 
+  /**
+   * Return a proxy object representing the result of multiplying a field
+   * expression by a scalar.
+   *
+   * @ingroup algebra
+   */
   template <int rank, int dim, Duality duality, class Expr>
   ScalarMultiplyExpr<rank, dim, duality, Expr>
   operator*(const double alpha, const FieldExpr<rank, dim, duality, Expr>& expr)
@@ -574,6 +676,11 @@ namespace icepack
   }
 
 
+  /**
+   * Return a proxy object represenging the result of dividing a field
+   * expression by a scalar.
+   *
+   * @ingroup algebra */
   template <int rank, int dim, Duality duality, class Expr>
   ScalarMultiplyExpr<rank, dim, duality, Expr>
   operator/(const FieldExpr<rank, dim, duality, Expr>& expr, const double alpha)
@@ -582,6 +689,12 @@ namespace icepack
   }
 
 
+  /**
+   * Return a proxy object representing the result of taking a negative field
+   * expression; this is equivalent to multiplying it by the scalar -1.
+   *
+   * @ingroup algebra
+   */
   template <int rank, int dim, Duality duality, class Expr>
   ScalarMultiplyExpr<rank, dim, duality, Expr>
   operator-(const FieldExpr<rank, dim, duality, Expr>& expr)
@@ -590,6 +703,14 @@ namespace icepack
   }
 
 
+  /**
+   * @brief Proxy object representing the result of adding two field expressions
+   * together.
+   *
+   * The two expressions must have the same underlying discretization.
+   *
+   * @ingroup algebra
+   */
   template <int rank, int dim, Duality duality, class Expr1, class Expr2>
   class AddExpr :
     public FieldExpr<rank, dim, duality,
@@ -618,6 +739,12 @@ namespace icepack
   };
 
 
+  /**
+   * Return a proxy object representing the result of adding two field
+   * expressions.
+   *
+   * @ingroup algebra
+   */
   template <int rank, int dim, Duality duality, class Expr1, class Expr2>
   AddExpr<rank, dim, duality, Expr1, Expr2>
   operator+(const FieldExpr<rank, dim, duality, Expr1>& expr1,
@@ -627,6 +754,12 @@ namespace icepack
   }
 
 
+  /**
+   * @brief Proxy object representing the result of subtracting one field
+   * expression from another.
+   *
+   * @ingroup algebra
+   */
   template <int rank, int dim, Duality duality, class Expr1, class Expr2>
   class SubtractExpr :
     public FieldExpr<rank, dim, duality,
@@ -655,6 +788,12 @@ namespace icepack
   };
 
 
+  /**
+   * Return a proxy object representing the result of subtracting one field
+   * expression from another.
+   *
+   * @ingroup algebra
+   */
   template <int rank, int dim, Duality duality, class Expr1, class Expr2>
   SubtractExpr<rank, dim, duality, Expr1, Expr2>
   operator-(const FieldExpr<rank, dim, duality, Expr1>& expr1,
@@ -662,7 +801,6 @@ namespace icepack
   {
     return SubtractExpr<rank, dim, duality, Expr1, Expr2>(expr1, expr2);
   }
-
 
 } // namespace icepack
 

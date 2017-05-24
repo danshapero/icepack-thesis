@@ -1,0 +1,3 @@
+
+/** @namespace icepack */
+namespace icepack;

@@ -21,8 +21,10 @@ namespace icepack
 
 
   /**
-   * This class encapsulates all of the data needed to discretize scalar and
-   * vector fields in some finite element basis.
+   * @brief Encapsulates all of the data needed to discretize scalar and vector
+   * fields in some finite element basis.
+   *
+   * @ingroup field
    */
   template <int dim>
   class Discretization : public dealii::Subscriptor
@@ -30,8 +32,8 @@ namespace icepack
   public:
 
     /**
-     * This is a helper class that stores data specific to a given tensor rank,
-     * i.e. rank-0 for scalar fields and rank-1 for tensor fields.
+     * @brief Helper class for data specific to a given tensor rank, i.e. rank-0
+     * for scalar and rank-1 for tensor fields.
      */
     class Rank
     {

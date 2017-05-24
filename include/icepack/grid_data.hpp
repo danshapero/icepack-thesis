@@ -7,15 +7,16 @@
 namespace icepack
 {
   /**
-   * Class for reading gridded data into a `dealii::Function` object
+   * @brief Class for reading gridded data into a `dealii::Function` object.
    */
   class GridData :
     public dealii::Functions::InterpolatedTensorProductGridData<2>
   {
   public:
     /**
-     * Construct a GridData object from arrays giving the locations of the
-     * measurements and the data.
+     * @brief Construct a `GridData` object from arrays giving the locations of
+     * the measurements and the data.
+     *
      * You will probably never need to use this method; instead, use the
      * functions defined below to read various common data formats into a
      * GridData object.
@@ -65,8 +66,8 @@ namespace icepack
 
   /**
    * Read a gridded data set stored in the ESRI Arc/Info ASCII grid format. See
-   *   http://en.wikipedia.org/wiki/Esri_grid
-   * for format specification and more info.
+   * the [Wikipedia article](http://en.wikipedia.org/wiki/Esri_grid) for the
+   * format specification and more info.
    */
   GridData readArcAsciiGrid(const std::string& filename);
 

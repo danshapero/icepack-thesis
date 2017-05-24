@@ -15,9 +15,6 @@ namespace icepack
     constexpr double rho_ice = 917 / (year * year) * 1.0e-6;
     constexpr double rho_water = 1024 / (year * year) * 1.0e-6;
   }
-
-  /// Compute the rate factor `A` in Glen's flow law for a given temperature.
-  double rate_factor(const double temperature);
 }
 
 #endif

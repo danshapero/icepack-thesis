@@ -28,13 +28,16 @@ namespace icepack
     return A0 * std::exp(-r);
   }
 
-  double drate_factor(const double temperature)
+  namespace
   {
-    const bool cold = (temperature < transition_temperature);
-    const bool A0 = cold ? A0_cold : A0_warm;
-    const double Q = cold ? Q_cold : Q_warm;
-    const double r = Q / (ideal_gas * temperature);
-    return A0 * r / temperature * std::exp(-r);
+    double drate_factor(const double temperature)
+    {
+      const bool cold = (temperature < transition_temperature);
+      const bool A0 = cold ? A0_cold : A0_warm;
+      const double Q = cold ? Q_cold : Q_warm;
+      const double r = Q / (ideal_gas * temperature);
+      return A0 * r / temperature * std::exp(-r);
+    }
   }
 
 

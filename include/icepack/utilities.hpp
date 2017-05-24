@@ -7,9 +7,8 @@
 namespace icepack
 {
   /**
-   * This namespace contains sensible default values for the `UpdateFlags`
-   * that have to be passed to `FEValues` when evaluating fields at all the
-   * quadrature points of cells of a triangulation.
+   * @brief Default values for the `dealii::UpdateFlags` that are passed to
+   * `dealii::FEValues`
    */
   namespace DefaultFlags
   {

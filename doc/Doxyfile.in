@@ -1,0 +1,237 @@
+
+PROJECT_NAME           = "@CMAKE_PROJECT_NAME@"
+PROJECT_NUMBER         =
+PROJECT_BRIEF          =
+PROJECT_LOGO           =
+OUTPUT_DIRECTORY       =
+
+INLINE_INHERITED_MEMB  = NO
+FULL_PATH_NAMES        = YES
+STRIP_FROM_PATH        = @PROJECT_SOURCE_DIR@ \
+                         @PROJECT_BINARY_DIR@
+STRIP_FROM_INC_PATH    =
+
+# TODO: experiment with this, could make things less annoying
+JAVADOC_AUTOBRIEF      = NO
+
+INHERIT_DOCS           = YES
+TAB_SIZE               = 4
+MARKDOWN_SUPPORT       = YES
+AUTOLINK_SUPPORT       = YES
+BUILTIN_STL_SUPPORT    = YES
+GROUP_NESTED_COMPOUNDS = YES
+
+INLINE_GROUPED_CLASSES = NO
+
+
+#---------------------------------------------------------------------------
+# Build related configuration options
+#---------------------------------------------------------------------------
+
+EXTRACT_ALL            = NO
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = NO
+EXTRACT_LOCAL_CLASSES  = YES
+EXTRACT_ANON_NSPACES   = NO
+HIDE_UNDOC_MEMBERS     = NO
+HIDE_UNDOC_CLASSES     = NO
+HIDE_FRIEND_COMPOUNDS  = NO
+HIDE_IN_BODY_DOCS      = YES
+CASE_SENSE_NAMES       = YES
+HIDE_SCOPE_NAMES       = NO
+SHOW_INCLUDE_FILES     = YES
+SORT_MEMBER_DOCS       = NO
+SORT_BRIEF_DOCS        = NO
+GENERATE_TODOLIST      = YES
+GENERATE_BUGLIST       = YES
+GENERATE_DEPRECATEDLIST= YES
+SHOW_USED_FILES        = YES
+SHOW_FILES             = YES
+SHOW_NAMESPACES        = YES
+
+# TODO: Make the generated documentation look not as awful as the default.
+LAYOUT_FILE            =
+
+# TODO: Put all the sources (like Nocedal & Wright, Greve & Blatter, etc.) in a
+# .bib file and use the @cite command throughout the docstrings
+CITE_BIB_FILES         =
+
+
+#---------------------------------------------------------------------------
+# Configuration options related to warning and progress messages
+#---------------------------------------------------------------------------
+
+QUIET                  = YES
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = NO
+
+
+#---------------------------------------------------------------------------
+# Configuration options related to the input files
+#---------------------------------------------------------------------------
+
+INPUT                  = @doxy_main_page@ \
+                         @PROJECT_SOURCE_DIR@ \
+                         @PROJECT_BINARY_DIR@
+FILE_PATTERNS          = *.cpp *.hpp *.markdown *.md
+RECURSIVE              = YES
+EXCLUDE                =
+
+# TODO: Figure out how to have everything under doc/headers/ included for the
+# purpose of defining groups, but make it not appear under the Files tab in the
+# generated documentation.
+EXCLUDE_PATTERNS       = @PROJECT_SOURCE_DIR@/test/*
+EXCLUDE_SYMBOLS        =
+
+IMAGE_PATH             =
+
+# TODO: Look at what deal.II does, they have some pretty useful stuff for making
+# Latex formulas inside docstrings much less painful.
+INPUT_FILTER           =
+FILTER_SOURCE_FILES    = NO
+
+USE_MDFILE_AS_MAINPAGE = @doxy_main_page@
+
+
+#---------------------------------------------------------------------------
+# Configuration options related to source browsing
+#---------------------------------------------------------------------------
+
+#TODO: experiment with this
+SOURCE_BROWSER         = NO
+INLINE_SOURCES         = NO
+STRIP_CODE_COMMENTS    = YES
+REFERENCED_BY_RELATION = NO
+REFERENCES_RELATION    = NO
+REFERENCES_LINK_SOURCE = YES
+SOURCE_TOOLTIPS        = YES
+VERBATIM_HEADERS       = YES
+
+
+#---------------------------------------------------------------------------
+# Configuration options related to the alphabetical class index
+#---------------------------------------------------------------------------
+
+ALPHABETICAL_INDEX     = YES
+COLS_IN_ALPHA_INDEX    = 5
+
+
+#---------------------------------------------------------------------------
+# Configuration options related to the HTML output
+#---------------------------------------------------------------------------
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+
+# TODO: Make the generated documentation look not as awful.
+HTML_HEADER            =
+HTML_FOOTER            =
+HTML_STYLESHEET        =
+HTML_EXTRA_STYLESHEET  =
+GENERATE_TREEVIEW      = NO
+TREEVIEW_WIDTH         = 250
+
+HTML_TIMESTAMP         = NO
+HTML_INDEX_NUM_ENTRIES = 100
+
+# TODO: Get a Mac, get XCode, investigate this.
+GENERATE_DOCSET        = NO
+DOCSET_FEEDNAME        = "Doxygen generated docs"
+DOCSET_BUNDLE_ID       = org.doxygen.Project
+DOCSET_PUBLISHER_ID    = org.doxygen.Publisher
+DOCSET_PUBLISHER_NAME  = Publisher
+
+ENUM_VALUES_PER_LINE   = 1
+FORMULA_FONTSIZE       = 12
+
+# TODO: Set this conditionally if it can be found or the user asks
+USE_MATHJAX            = NO
+MATHJAX_FORMAT         = HTML-CSS
+# This definitely doesn't work since they got rid of their CDN.
+MATHJAX_RELPATH        = http://cdn.mathjax.org/mathjax/latest
+MATHJAX_EXTENSIONS     =
+MATHJAX_CODEFILE       =
+
+SEARCHENGINE           = YES
+
+
+#---------------------------------------------------------------------------
+# Configuration options related to the LaTeX output
+#---------------------------------------------------------------------------
+
+GENERATE_LATEX         = NO
+
+# TODO: See if I can get nicer fonts in the Latex output with this.
+EXTRA_PACKAGES         =
+
+
+#---------------------------------------------------------------------------
+# Configuration options related to the XML output
+#---------------------------------------------------------------------------
+
+GENERATE_XML           = YES
+XML_OUTPUT             = xml
+XML_PROGRAMLISTING     = YES
+
+
+#---------------------------------------------------------------------------
+# Configuration options related to the preprocessor
+#---------------------------------------------------------------------------
+
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+SEARCH_INCLUDES        = YES
+INCLUDE_PATH           =
+INCLUDE_FILE_PATTERNS  =
+SKIP_FUNCTION_MACROS   = YES
+
+
+#---------------------------------------------------------------------------
+# Configuration options related to external references
+#---------------------------------------------------------------------------
+
+TAGFILES               =
+GENERATE_TAGFILE       =
+ALLEXTERNALS           = NO
+EXTERNAL_GROUPS        = YES
+EXTERNAL_PAGES         = YES
+PERL_PATH              = /usr/bin/perl
+
+
+#---------------------------------------------------------------------------
+# Configuration options related to the dot tool
+#---------------------------------------------------------------------------
+
+CLASS_DIAGRAMS         = YES
+HAVE_DOT               = YES
+CLASS_GRAPH            = YES
+
+# TODO: Find a way to include a collaboration graph, but that only points to
+# other classes in icepack -- not to deal.II classes (or maybe?) and not to STL
+# classes or built-in types
+COLLABORATION_GRAPH    = NO
+HIDE_UNDOC_RELATIONS   = NO
+
+GROUP_GRAPHS           = YES
+UML_LOOK               = NO
+UML_LIMIT_NUM_FIELDS   = 10
+TEMPLATE_RELATIONS     = YES
+INCLUDE_GRAPH          = YES
+INCLUDED_BY_GRAPH      = YES
+CALL_GRAPH             = NO
+CALLER_GRAPH           = NO
+GRAPHICAL_HIERARCHY    = YES
+DIRECTORY_GRAPH        = YES
+DOT_IMAGE_FORMAT       = svg
+INTERACTIVE_SVG        = NO
+MAX_DOT_GRAPH_DEPTH    = 0
+DOT_TRANSPARENT        = NO
+
+# TODO: See if the default version of dot on a recent OSX is greater than 1.8
+# so that we can use this.
+DOT_MULTI_TARGETS      = NO
+
+GENERATE_LEGEND        = YES
+DOT_CLEANUP            = YES
