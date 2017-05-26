@@ -404,6 +404,51 @@ namespace icepack
     return std::sqrt(M.matrix_norm_square(phi.coefficients()));
   }
 
+
+  /**
+   * Compute the \f$L^\infty\f$ norm of a field:
+   * \f[
+   *   \|u\|_{L^\infty} = \max\{|u(x)| : x \in \Omega\}
+   * \f]
+   */
+  template <int rank, int dim>
+  double max(const FieldType<rank, dim>& u)
+  {
+    const auto& discretization = u.discretization();
+    const auto& fe = discretization(rank).finite_element();
+    const unsigned int p = fe.tensor_degree() + 1;
+
+    // We have to use Gauss-Lobatto quadrature because it samples the endpoints
+    // of the interval, whereas the ordinary Gauss quadrature points are all in
+    // the interior.
+    const auto quad = dealii::QGaussLobatto<dim>(p + 1);
+    const unsigned int n_q_points = quad.size();
+    using value_type = typename FieldType<rank, dim>::value_type;
+    std::vector<value_type> u_values(n_q_points);
+
+    const dealii::UpdateFlags flags =
+      dealii::update_values | dealii::update_quadrature_points;
+    dealii::FEValues<dim> fe_values(fe, quad, flags);
+    const typename FieldType<rank, dim>::extractor_type ex(0);
+
+    double max_val = 0.0;
+    for (const auto& cell:
+           discretization(rank).dof_handler().active_cell_iterators())
+    {
+      fe_values.reinit(cell);
+      fe_values[ex].get_function_values(u.coefficients(), u_values);
+
+      for (unsigned int q = 0; q < n_q_points; ++q)
+      {
+        const value_type U = u_values[q];
+        max_val = std::max(max_val, std::sqrt(U * U));
+      }
+    }
+
+    return max_val;
+  }
+
+
   /**
    * Compute the L2 inner product of two fields:
    * \f[
@@ -464,7 +509,8 @@ namespace icepack
     const typename FieldType<rank, dim>::extractor_type ex(0);
 
     double dist_squared = 0.0;
-    for (auto cell: discretization(rank).dof_handler().active_cell_iterators())
+    for (const auto& cell:
+           discretization(rank).dof_handler().active_cell_iterators())
     {
       fe_values.reinit(cell);
       fe_values[ex].get_function_values(phi1.coefficients(), phi1_values);

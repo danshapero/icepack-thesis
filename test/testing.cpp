@@ -107,6 +107,16 @@ namespace icepack
     }
 
 
+    double max(const AffineFunction& f, const dealii::Triangulation<2>& tria)
+    {
+      double max_val = 0.0;
+      for (const Point<2>& x: tria.get_vertices())
+        max_val = std::max(max_val, std::abs(f.value(x)));
+
+      return max_val;
+    }
+
+
     double AffineFunction::value(const Point<2>& x, const unsigned int) const
     {
       return a + p * x;
@@ -173,6 +183,16 @@ namespace icepack
       return std::sqrt(inner_product(f, f));
     }
 
+
+    double
+    max(const AffineTensorFunction& f, const dealii::Triangulation<2>& tria)
+    {
+      double max_val = 0.0;
+      for (const Point<2>& x: tria.get_vertices())
+        max_val = std::max(max_val, f.value(x).norm());
+
+      return max_val;
+    }
 
   } // End of namespace testing
 } // End of namespace icepack

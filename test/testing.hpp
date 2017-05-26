@@ -101,6 +101,8 @@ namespace icepack
 
     double norm(const AffineFunction& f);
 
+    double max(const AffineFunction& f, const dealii::Triangulation<2>& tria);
+
 
     /// Same as affine functions above but for vector fields.
     class AffineTensorFunction : public dealii::TensorFunction<1, 2>
@@ -124,6 +126,9 @@ namespace icepack
     inner_product(const AffineTensorFunction& f, const AffineTensorFunction& g);
 
     double norm(const AffineTensorFunction& f);
+
+    double
+    max(const AffineTensorFunction& f, const dealii::Triangulation<2>& tria);
 
   } // namespace testing
 } // namespace icepack

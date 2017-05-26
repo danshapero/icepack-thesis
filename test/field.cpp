@@ -8,7 +8,7 @@ using icepack::VectorField;
 using icepack::DualField;
 using icepack::DualVectorField;
 
-const auto update_flags =
+const dealii::UpdateFlags update_flags =
   dealii::update_values | dealii::update_quadrature_points;
 
 
@@ -82,11 +82,10 @@ int main()
       CHECK_REAL(norm(phi), norm(Phi), tolerance);
 
       const auto psi = icepack::interpolate(discretization, Psi);
-      CHECK_REAL(inner_product(phi, psi),
-                 icepack::testing::inner_product(Phi, Psi),
-                 tolerance);
+      CHECK_REAL(inner_product(phi, psi), inner_product(Phi, Psi), tolerance);
 
       CHECK_REAL(dist(phi, psi), norm(Phi - Psi), tolerance);
+      CHECK_REAL(max(phi), max(Phi, tria), tolerance);
 
       const auto f = transpose(phi);
       CHECK_REAL(inner_product(f, psi), inner_product(phi, psi), tolerance);
