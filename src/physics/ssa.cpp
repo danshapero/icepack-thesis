@@ -113,7 +113,7 @@ namespace icepack
 
 
   Viscosity::Viscosity(const ViscousRheology& rheology_) :
-    rheology(rheology_), membrane_stress(rheology)
+    membrane_stress(rheology_)
   {}
 
 
@@ -141,7 +141,7 @@ namespace icepack
     FEValues<2> h_fe_values(discretization(0).finite_element(), quad, flags);
     const auto& exs = h_fe_values[dealii::FEValuesExtractors::Scalar(0)];
 
-    const double n = rheology.n;
+    const double n = membrane_stress.rheology.n;
 
     for (const auto& it: discretization)
     {

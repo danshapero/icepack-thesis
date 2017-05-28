@@ -76,7 +76,7 @@ namespace icepack
       const SymmetricTensor<2, 2> eps
     ) const;
 
-    const ViscousRheology& rheology;
+    const ViscousRheology rheology;
   };
 
 
@@ -88,7 +88,6 @@ namespace icepack
    */
   struct Viscosity
   {
-    const ViscousRheology rheology;
     const MembraneStress membrane_stress;
 
     /**

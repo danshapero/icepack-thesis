@@ -163,8 +163,8 @@ int main(int argc, char ** argv)
 
   const icepack::Viscosity viscosity(rheology);
 
-  const double n = viscosity.rheology.n;
-  const double B = viscosity.rheology(temp);
+  const double n = rheology.n;
+  const double B = rheology(temp);
   const double h_integral =
     (std::pow(h0, n + 3) - std::pow(h0 - dh, n + 3))/((n + 3) * dh);
   const double power =
