@@ -13,6 +13,7 @@ int main(int argc, char ** argv)
 
   CHECK(discretization.triangulation().n_cells() == tria.n_cells());
   CHECK(discretization.quad().size() > 0);
+  CHECK(discretization.face_quad().size() > 0);
 
   for (unsigned int rank = 0; rank < 2; ++rank)
   {

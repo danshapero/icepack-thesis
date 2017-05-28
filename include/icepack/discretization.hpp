@@ -129,6 +129,11 @@ namespace icepack
      */
     dealii::QGauss<dim> quad() const;
 
+    /**
+     * Same as above, but for quadrature over faces of a mesh rather than cells.
+     */
+    dealii::QGauss<dim - 1> face_quad() const;
+
 
     /**
      * Return a reference to the `Rank` object for scalar fields.

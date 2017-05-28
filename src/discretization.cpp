@@ -174,6 +174,12 @@ namespace icepack
     return dealii::QGauss<dim>(p + 1);
   }
 
+  template <int dim>
+  dealii::QGauss<dim - 1> Discretization<dim>::face_quad() const
+  {
+    const unsigned int p = scalar().finite_element().tensor_degree() + 1;
+    return dealii::QGauss<dim - 1>(p + 1);
+  }
 
   template class Discretization<2>;
 }
