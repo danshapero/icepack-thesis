@@ -24,6 +24,34 @@ namespace icepack
      */
     extern const UpdateFlags face_flags;
   }
+
+
+  /**
+   * Return `true` if the given face of a deal.II cell iterator is on the
+   * boundary of the mesh.
+   */
+  template <typename iterator>
+  bool at_boundary(const iterator& it, const unsigned int face_number)
+  {
+    return it->face(face_number)->at_boundary();
+  }
+
+
+  /**
+   * Return `true` if the given face of a deal.II iterator is on a specific
+   * part of the boundary of the mesh.
+   */
+  template <typename iterator>
+  bool at_boundary(
+    const iterator& it,
+    const unsigned int face_number,
+    const unsigned int boundary_id
+  )
+  {
+    return at_boundary(it, face_number) and
+      (it->face(face_number)->boundary_id() == boundary_id);
+  }
+
 }
 
 #endif
