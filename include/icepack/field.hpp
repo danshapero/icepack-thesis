@@ -5,8 +5,7 @@
 #include <deal.II/base/tensor_function.h>
 #include <deal.II/base/tensor.h>
 #include <deal.II/fe/fe_values.h>
-#include <deal.II/lac/solver_cg.h>
-#include <deal.II/lac/precondition.h>
+#include <deal.II/lac/sparse_direct.h>
 #include <icepack/utilities.hpp>
 #include <icepack/discretization.hpp>
 
@@ -369,21 +368,20 @@ namespace icepack
   FieldType<rank, dim, primal> transpose(const FieldType<rank, dim, dual>& f)
   {
     const auto& discretization = f.discretization();
+    const auto& constraints = discretization(rank).constraints();
+
+    const dealii::SparseMatrix<double>& M = discretization(rank).mass_matrix();
+    dealii::SparseMatrix<double> A(M.get_sparsity_pattern());
+    A.copy_from(M);
+    FieldType<rank, dim, dual> g(f);
+    constraints.condense(A, g.coefficients());
+
+    dealii::SparseDirectUMFPACK B;
+    B.initialize(A);
+
     FieldType<rank, dim, primal> phi(discretization);
-
-    const auto& M = discretization(rank).mass_matrix();
-
-    // TODO: make these member variables of the discretization and let the user
-    // set them if they want to.
-    const unsigned int max_iterations = f.coefficients().size();
-    const double tolerance = 1.0e-8;
-    dealii::SolverControl solver_control(max_iterations, tolerance);
-    solver_control.log_result(false);
-    dealii::SolverCG<> solver(solver_control);
-    const auto id = dealii::PreconditionIdentity();
-    solver.solve(M, phi.coefficients(), f.coefficients(), id);
-
-    discretization(rank).constraints().distribute(phi.coefficients());
+    B.vmult(phi.coefficients(), g.coefficients());
+    constraints.distribute(phi.coefficients());
 
     return phi;
   }
