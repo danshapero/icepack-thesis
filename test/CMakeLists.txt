@@ -29,9 +29,13 @@ endfunction(icepack_tests)
 icepack_tests(
   grid_data
   discretization
-  field
   optimization
 )
+
+icepack_exec(field)
+icepack_test(field_basic field)
+icepack_test(field_refined field "--refined")
+icepack_test(field_quadratic field "--quadratic")
 
 icepack_exec(ssa)
 icepack_test(ssa_basic ssa)

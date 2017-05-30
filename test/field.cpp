@@ -57,12 +57,20 @@ double diff(const icepack::FieldType<rank, dim>& u, const F& f)
 using icepack::testing::AffineFunction;
 using icepack::testing::AffineTensorFunction;
 
-int main()
+int main(int argc, char ** argv)
 {
-  const dealii::Triangulation<2> tria = icepack::testing::example_mesh();
-  const icepack::Discretization<2> discretization(tria, 1);
+  const auto args = icepack::testing::get_cmdline_args(argc, argv);
+  const bool refined = args.count("--refined");
+  const bool quadratic = args.count("--quadratic");
 
-  const double tolerance = std::pow(icepack::testing::resolution(tria), 2);
+  const size_t num_levels = 5 - quadratic;
+  const size_t p = 1 + quadratic;
+
+  const dealii::Triangulation<2> tria =
+    icepack::testing::example_mesh(num_levels, refined);
+  const icepack::Discretization<2> discretization(tria, p);
+
+  const double tolerance = std::pow(icepack::testing::resolution(tria), p + 1);
 
   const AffineFunction Phi(1.0, dealii::Point<2>(-4.0, 8.0));
   const AffineFunction Psi(-2.0, dealii::Point<2>(3.0, 7.0));
