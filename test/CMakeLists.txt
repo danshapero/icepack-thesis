@@ -42,6 +42,11 @@ icepack_test(ssa_basic ssa)
 icepack_test(ssa_refined ssa "--refined")
 icepack_test(ssa_quadratic ssa "--quadratic")
 
+icepack_exec(mass_transport)
+icepack_test(mass_transport_basic mass_transport)
+icepack_test(mass_transport_refined mass_transport "--refined")
+icepack_test(mass_transport_quadratic mass_transport "--quadratic")
+
 if(ICEPACK_TEST_COVERAGE)
   setup_target_for_coverage(coverage ctest coverage)
 endif()

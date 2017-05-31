@@ -482,25 +482,23 @@ namespace icepack
   namespace
   {
     dealii::ConstraintMatrix make_constraints(
-      const typename Discretization<2>::Rank& discretization_rank,
+      const typename Discretization<2>::Rank& rank,
       const std::set<dealii::types::boundary_id>& boundary_ids
     )
     {
-      const auto& dh = discretization_rank.dof_handler();
+      const auto& dof_handler = rank.dof_handler();
       const auto merge_behavior = dealii::ConstraintMatrix::right_object_wins;
 
-      // First build the constraints for the Dirichlet boundary conditions.
       dealii::ConstraintMatrix constraints;
       for (const auto& id: boundary_ids)
       {
         dealii::ConstraintMatrix boundary_constraints;
-        dealii::DoFTools::
-          make_zero_boundary_constraints(dh, id, boundary_constraints);
+        dealii::DoFTools::make_zero_boundary_constraints(
+          dof_handler, id, boundary_constraints);
         constraints.merge(boundary_constraints, merge_behavior);
       }
 
-      // Then merge in the hanging node constraints.
-      const auto& hanging_node_constraints = discretization_rank.constraints();
+      const auto& hanging_node_constraints = rank.constraints();
       constraints.merge(hanging_node_constraints, merge_behavior);
 
       constraints.close();
@@ -518,7 +516,7 @@ namespace icepack
   ) const
   {
     const auto& discretization = get_discretization(h, theta, u0);
-    const auto constraints =
+    const dealii::ConstraintMatrix constraints =
       make_constraints(discretization.vector(), boundary_ids);
 
     const auto F =

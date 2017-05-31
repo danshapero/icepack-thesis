@@ -5,6 +5,7 @@ set(SOURCES
   discretization.cpp
   field.cpp
   physics/ssa.cpp
+  physics/mass_transport.cpp
 )
 
 add_library(icepack ${SOURCES})
