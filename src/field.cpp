@@ -1,6 +1,8 @@
 
 #include <icepack/field.hpp>
 #include <deal.II/numerics/vector_tools.h>
+#include <deal.II/numerics/data_out.h>
+#include <fstream>
 
 namespace icepack
 {
@@ -86,6 +88,46 @@ namespace icepack
   template class FieldType<1, 2, primal>;
   template class FieldType<0, 2, dual>;
   template class FieldType<1, 2, dual>;
+
+
+
+  /* -----------
+   * File output
+   * ----------- */
+
+  template <int rank, int dim>
+  void write_ucd(
+    const FieldType<rank, dim>& u,
+    const std::string& filename,
+    const std::string& field_name
+  )
+  {
+    std::ofstream stream(filename.c_str());
+
+    dealii::DataOut<dim> data_out;
+    data_out.attach_dof_handler(u.discretization()(rank).dof_handler());
+
+    std::vector<std::string> component_names;
+    if (rank == 1)
+      for (unsigned int k = 0; k < dim; ++k)
+        component_names.push_back(field_name + "_" + std::to_string(k + 1));
+    else
+      component_names.push_back(field_name);
+
+    data_out.add_data_vector(u.coefficients(), component_names);
+    data_out.build_patches();
+    data_out.write_ucd(stream);
+  }
+
+  template
+  void write_ucd<0, 2>(
+    const Field<2>&, const std::string&, const std::string&
+  );
+
+  template
+  void write_ucd<1, 2>(
+    const VectorField<2>&, const std::string&, const std::string&
+  );
 
 
 

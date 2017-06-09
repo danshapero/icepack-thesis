@@ -308,6 +308,24 @@ namespace icepack
 
 
 
+  /* -----------
+   * File output
+   * ----------- */
+
+  /**
+   * Write out a field to a file in the `.ucd` format.
+   *
+   * @ingroup field
+   */
+  template <int rank, int dim>
+  void write_ucd(
+    const FieldType<rank, dim>& u,
+    const std::string& filename,
+    const std::string& field_name = "u"
+  );
+
+
+
   /* -----------------------------------------
    * Field norms, inner products, and adjoints
    * ----------------------------------------- */

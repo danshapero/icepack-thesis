@@ -1,7 +1,8 @@
 
-#include <deal.II/fe/fe_values.h>
-#include <icepack/field.hpp>
 #include "testing.hpp"
+#include <icepack/field.hpp>
+#include <deal.II/fe/fe_values.h>
+#include <fstream>
 
 using icepack::Field;
 using icepack::VectorField;
@@ -214,6 +215,23 @@ int main(int argc, char ** argv)
 
     test(Phi, Psi, Xi);
     test(U, V, W);
+  }
+
+
+  TEST_SUITE("file output")
+  {
+    const auto test = [&](const auto& Phi)
+    {
+      auto phi = icepack::interpolate(discretization, Phi);
+      const std::string filename = "phi.ucd";
+      icepack::write_ucd(phi, filename, "phi");
+      std::ifstream stream(filename.c_str());
+      CHECK(stream.good());
+      std::remove(filename.c_str());
+    };
+
+    test(Phi);
+    test(U);
   }
 
 
