@@ -2,3 +2,6 @@
 # Ignore anything in the build directory
 build*
 
+# Ignore `compile_commands.json`, in case you use that for autocompletion
+compile_commands.json
+
