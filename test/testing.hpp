@@ -141,15 +141,19 @@ namespace icepack
 #include <cassert>
 
 #define CHECK(cond)                                                     \
-  if (!(cond))                                                          \
+  do                                                                    \
   {                                                                     \
-    std::cerr << "Test " << #cond << std::endl                          \
-              << "at   " << __FILE__ << ":" << __LINE__ << std::endl    \
-              << "failed." << std::endl;                                \
-    abort();                                                            \
-  }
+    if (!(cond))                                                        \
+    {                                                                   \
+      std::cerr << "Test " << #cond << std::endl                        \
+                << "at   " << __FILE__ << ":" << __LINE__ << std::endl  \
+                << "failed." << std::endl;                              \
+      abort();                                                          \
+    }                                                                   \
+  } while(0)
 
 #define CHECK_REAL(val1, val2, tol)                                     \
+  do                                                                    \
   {                                                                     \
     const double __icepack_test_diff = std::abs((val1) - (val2));       \
     if (__icepack_test_diff > (tol))                                    \
@@ -160,9 +164,10 @@ namespace icepack
                 << "at " << __FILE__ << ":" << __LINE__ << std::endl;   \
       abort();                                                          \
     }                                                                   \
-  }
+  } while(0)
 
 #define CHECK_FIELDS(phi1, phi2, tol)                                   \
+  do                                                                    \
   {                                                                     \
     const double __icepack_test_diff =                                  \
       icepack::dist((phi1), (phi2)) / norm(phi2);                       \
@@ -175,7 +180,7 @@ namespace icepack
                 << "at " << __FILE__ << ":" << __LINE__ << std::endl;   \
       abort();                                                          \
     }                                                                   \
-  }
+  } while(0)
 
 
 #define TEST_SUITE(name)                        \
