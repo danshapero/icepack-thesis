@@ -1,11 +1,10 @@
 
 # Add a target to generate API documentation with Doxygen
 find_package(Doxygen)
-option(BUILD_DOCUMENTATION
-  "Create and install the HTML based API documentation (requires Doxygen)"
-  ${DOXYGEN_FOUND})
+option(ICEPACK_DOCUMENTATION
+  "Create and install the HTML based API documentation (requires Doxygen)")
 
-if(BUILD_DOCUMENTATION)
+if(ICEPACK_DOCUMENTATION)
   if(NOT DOXYGEN_FOUND)
     message(FATAL_ERROR "Doxygen is needed to build the documentation.")
   endif()
@@ -16,7 +15,7 @@ if(BUILD_DOCUMENTATION)
 
   configure_file(${doxyfile_in} ${doxyfile} @ONLY)
 
-  add_custom_target(doc
+  add_custom_target(doc ALL
     COMMAND ${DOXYGEN_EXECUTABLE} ${doxyfile}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generating API documentation with Doxygen"
@@ -24,3 +23,4 @@ if(BUILD_DOCUMENTATION)
 
   install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html DESTINATION share/doc)
 endif()
+

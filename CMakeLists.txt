@@ -20,6 +20,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
 project(icepack)
 
+option(ICEPACK_TEST_COVERAGE
+  "Check how much of the library is covered by the unit tests (requires lcov)")
 if(ICEPACK_TEST_COVERAGE)
   include(CodeCoverage)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
