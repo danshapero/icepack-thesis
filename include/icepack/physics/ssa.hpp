@@ -2,9 +2,9 @@
 #ifndef ICEPACK_SSA_HPP
 #define ICEPACK_SSA_HPP
 
-#include <deal.II/base/symmetric_tensor.h>
 #include <icepack/field.hpp>
 #include <icepack/numerics/optimization.hpp>
+#include <deal.II/base/symmetric_tensor.h>
 
 namespace icepack
 {
@@ -190,7 +190,7 @@ namespace icepack
      * ice shelf boundary that correspond to Dirichlet boundary conditions.
      */
     IceShelf(
-      const std::set<dealii::types::boundary_id>& dirichlet_boundary_ids = {0},
+      const std::set<dealii::types::boundary_id>& dirichlet_boundary_ids,
       const Viscosity& viscosity = Viscosity(ViscousRheology()),
       const double convergence_tolerance = 1.0e-6
     );
@@ -210,22 +210,10 @@ namespace icepack
       const SolveOptions solve_options = SolveOptions()
     ) const;
 
-    /**
-     * Compute the ice velocity for a given thickness and temperature, but using
-     * Dirichlet boundary conditions on different parts of the domain boundary
-     * than the default.
-     */
-    VectorField<2> solve(
-      const Field<2>& thickness,
-      const Field<2>& theta,
-      const VectorField<2>& velocity,
-      const std::set<dealii::types::boundary_id>& dirichlet_boundary_ids,
-      const SolveOptions solve_options = SolveOptions()
-    ) const;
+    const std::set<dealii::types::boundary_id> dirichlet_boundary_ids;
 
     const Gravity gravity;
     const Viscosity viscosity;
-    const std::set<dealii::types::boundary_id> dirichlet_boundary_ids;
     const double tolerance;
   };
 
