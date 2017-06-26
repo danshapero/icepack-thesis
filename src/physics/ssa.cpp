@@ -187,7 +187,7 @@ namespace icepack
     const auto& fe = discretization(1).finite_element();
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
 
-    Vector<double> cell_derivative(dofs_per_cell);
+    dealii::Vector<double> cell_derivative(dofs_per_cell);
     std::vector<dealii::types::global_dof_index> local_dof_ids(dofs_per_cell);
 
     using icepack::DefaultFlags::flags;
@@ -416,7 +416,7 @@ namespace icepack
     const auto& fe = discretization(1).finite_element();
 
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
-    Vector<double> cell_derivative(dofs_per_cell);
+    dealii::Vector<double> cell_derivative(dofs_per_cell);
     std::vector<dealii::types::global_dof_index> local_dof_ids(dofs_per_cell);
 
     using namespace icepack::constants;

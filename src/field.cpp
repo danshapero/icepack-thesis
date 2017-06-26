@@ -62,14 +62,14 @@ namespace icepack
   }
 
   template <int rank, int dim, Duality duality>
-  const Vector<double>&
+  const dealii::Vector<double>&
   FieldType<rank, dim, duality>::coefficients() const
   {
     return coefficients_;
   }
 
   template <int rank, int dim, Duality duality>
-  Vector<double>&
+  dealii::Vector<double>&
   FieldType<rank, dim, duality>::coefficients()
   {
     return coefficients_;

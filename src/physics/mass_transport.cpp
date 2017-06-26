@@ -8,6 +8,7 @@
 
 namespace icepack
 {
+  using dealii::Tensor;
 
   double compute_timestep(const double C, const VectorField<2>& u)
   {

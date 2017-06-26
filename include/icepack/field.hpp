@@ -11,9 +11,6 @@
 
 namespace icepack
 {
-  using dealii::Tensor;
-  using dealii::Vector;
-
   /**
    * This type is for keeping track of whether a field is in the function space
    * \f$H^1\f$, i.e. the primal space, or in the dual space \f$H^{-1}\f$.
@@ -192,12 +189,12 @@ namespace icepack
      * Return a const reference to the Galerkin expansion coefficients for this
      * field.
      */
-    const Vector<double>& coefficients() const;
+    const dealii::Vector<double>& coefficients() const;
 
     /**
      * Return a reference to the Galerkin expansion coefficients for this field.
      */
-    Vector<double>& coefficients();
+    dealii::Vector<double>& coefficients();
 
     /**
      * Return a single Galerkin expansion coefficient for this field.
@@ -211,14 +208,14 @@ namespace icepack
      * of the `dealii::Tensor` class template is aliases the right value type,
      * i.e. it reduces to `double` for rank 0.
      */
-    using value_type = typename Tensor<rank, dim>::tensor_type;
+    using value_type = typename dealii::Tensor<rank, dim>::tensor_type;
 
     /**
      * Same considerations as for `value_type` but for the gradient, i.e. the
      * gradient type of a scalar field is rank-1 tensor, for a vector field
      * rank-2 tensor, etc.
      */
-    using gradient_type = typename Tensor<rank + 1, dim>::tensor_type;
+    using gradient_type = typename dealii::Tensor<rank + 1, dim>::tensor_type;
 
     /**
      * This is a bit of template magic for selecting the right type to extract
@@ -242,7 +239,7 @@ namespace icepack
     /**
      * The Galerkin expansion coefficients for this field.
      */
-    Vector<double> coefficients_;
+    dealii::Vector<double> coefficients_;
   };
 
 
@@ -286,8 +283,7 @@ namespace icepack
    * @ingroup interpolation
    */
   template <int dim>
-  VectorField<dim>
-  interpolate(
+  VectorField<dim> interpolate(
     const Discretization<dim>& discretization,
     const dealii::TensorFunction<1, dim>& phi
   );
@@ -299,8 +295,7 @@ namespace icepack
    *
    * @ingroup interpolation
    */
-  VectorField<2>
-  interpolate(
+  VectorField<2> interpolate(
     const Discretization<2>& discretization,
     const dealii::Function<2>& phi1,
     const dealii::Function<2>& phi2
@@ -649,7 +644,7 @@ namespace icepack
               const FieldExpr<rank, dim, duality, Expr>& expr)
   {
     get_discretization(phi, expr);
-    Vector<double>& Phi = phi.coefficients();
+    dealii::Vector<double>& Phi = phi.coefficients();
     for (unsigned int i = 0; i < Phi.size(); ++i)
       Phi(i) += expr.coefficient(i);
 
@@ -684,7 +679,7 @@ namespace icepack
               const FieldExpr<rank, dim, duality, Expr>& expr)
   {
     get_discretization(phi, expr);
-    Vector<double>& Phi = phi.coefficients();
+    dealii::Vector<double>& Phi = phi.coefficients();
     for (unsigned int i = 0; i < Phi.size(); ++i)
       Phi(i) -= expr.coefficient(i);
 
