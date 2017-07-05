@@ -228,6 +228,11 @@ namespace icepack
                                 dealii::FEValuesExtractors::Scalar,
                                 dealii::FEValuesExtractors::Vector>::type;
 
+    using view_type =
+      typename std::conditional<rank == 0,
+                                dealii::FEValuesViews::Scalar<dim>,
+                                dealii::FEValuesViews::Vector<dim>>::type;
+
   protected:
     /**
      * Keep a pointer to the underlying discretization for this field. If the

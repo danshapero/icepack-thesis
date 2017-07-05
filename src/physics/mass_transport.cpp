@@ -1,5 +1,6 @@
 
 #include <icepack/physics/mass_transport.hpp>
+#include <icepack/assembly.hpp>
 #include <deal.II/lac/sparse_direct.h>
 #include <deal.II/lac/linear_operator.h>
 #include <deal.II/grid/grid_tools.h>
@@ -40,50 +41,34 @@ namespace icepack
 
     const dealii::QGauss<2> quad = discretization.quad();
     const dealii::QGauss<1> face_quad = discretization.face_quad();
-    const unsigned int n_q_points = quad.size();
-    const unsigned int n_face_q_points = face_quad.size();
 
-    std::vector<Tensor<1, 2>> u_values(n_q_points);
-    std::vector<Tensor<1, 2>> u_face_values(n_face_q_points);
+    auto assembly_data =
+      make_assembly_data<2>(evaluate::function(u));
+    auto assembly_face_data =
+      make_assembly_face_data<2>(evaluate::function(u));
 
     const auto& h_fe = discretization.scalar().finite_element();
-    const auto& u_fe = discretization.vector().finite_element();
     const unsigned int dofs_per_cell = h_fe.dofs_per_cell;
     dealii::FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     std::vector<dealii::types::global_dof_index> local_dof_ids(dofs_per_cell);
 
-    dealii::FEValues<2> h_fe_values(h_fe, quad, flags);
-    dealii::FEValues<2> u_fe_values(u_fe, quad, flags);
-    dealii::FEFaceValues<2> h_fe_face_values(h_fe, face_quad, face_flags);
-    dealii::FEFaceValues<2> u_fe_face_values(u_fe, face_quad, face_flags);
-
-    const auto& exs = h_fe_values[dealii::FEValuesExtractors::Scalar(0)];
-    const auto& exv = u_fe_values[dealii::FEValuesExtractors::Vector(0)];
-    const auto& exfs = h_fe_face_values[dealii::FEValuesExtractors::Scalar(0)];
-    const auto& exfv = u_fe_face_values[dealii::FEValuesExtractors::Vector(0)];
-
-    for (const auto& it: discretization)
+    for (const auto& cell: discretization)
     {
-      const auto& its = std::get<0>(it);
-      const auto& itv = std::get<1>(it);
-
       cell_matrix = 0;
-      h_fe_values.reinit(its);
-      u_fe_values.reinit(itv);
+      assembly_data.reinit(cell);
 
-      exv.get_function_values(u.coefficients(), u_values);
-
-      for (unsigned int q = 0; q < n_q_points; ++q)
+      for (unsigned int q = 0; q < quad.size(); ++q)
       {
-        const double dx = h_fe_values.JxW(q);
-        const Tensor<1, 2> U = u_values[q];
+        const double dx = assembly_data.JxW(q);
+        const Tensor<1, 2> U = std::get<0>(assembly_data.values(q));
 
         for (unsigned int i = 0; i < dofs_per_cell; ++i)
         {
-          const Tensor<1, 2> grad_phi_i = exs.gradient(i, q);
+          const Tensor<1, 2> grad_phi_i =
+            assembly_data.fe_values_view<0>().gradient(i, q);
           for (unsigned int j = 0; j < dofs_per_cell; ++j)
           {
-            const double phi_j = exs.value(j, q);
+            const double phi_j = assembly_data.fe_values_view<0>().value(j, q);
             cell_matrix(i, j) -= grad_phi_i * U * phi_j * dx;
           }
         }
@@ -91,26 +76,25 @@ namespace icepack
 
       for (unsigned int face = 0; face < faces_per_cell; ++face)
       {
-        if (at_boundary(its, face))
+        if (at_boundary(std::get<0>(cell), face))
         {
-          h_fe_face_values.reinit(its, face);
-          u_fe_face_values.reinit(itv, face);
+          assembly_face_data.reinit(cell, face);
 
-          exfv.get_function_values(u.coefficients(), u_face_values);
-
-          for (unsigned int q = 0; q < n_face_q_points; ++q)
+          for (unsigned int q = 0; q < face_quad.size(); ++q)
           {
-            const double dl = h_fe_face_values.JxW(q);
-            const Tensor<1, 2> U = u_face_values[q];
-            const Tensor<1, 2> n = h_fe_face_values.normal_vector(q);
+            const double dl = assembly_face_data.JxW(q);
+            const Tensor<1, 2> U = std::get<0>(assembly_face_data.values(q));
+            const Tensor<1, 2> n = assembly_face_data.normal_vector(q);
 
             for (unsigned int i = 0; i < dofs_per_cell; ++i)
             {
-              const double phi_i = exfs.value(i, q);
+              const double phi_i =
+                assembly_face_data.fe_values_view<0>().value(i, q);
 
               for (unsigned int j = 0; j < dofs_per_cell; ++j)
               {
-                const double phi_j = exfs.value(j, q);
+                const double phi_j =
+                  assembly_face_data.fe_values_view<0>().value(j, q);
                 cell_matrix(i, j) += phi_i * phi_j * U * n * dl;
               }
             }
@@ -118,7 +102,7 @@ namespace icepack
         }
       }
 
-      std::get<0>(it)->get_dof_indices(local_dof_ids);
+      std::get<0>(cell)->get_dof_indices(local_dof_ids);
       constraints.distribute_local_to_global(cell_matrix, local_dof_ids, F);
     }
 

@@ -30,6 +30,7 @@ icepack_tests(
   grid_data
   discretization
   optimization
+  assembly
 )
 
 icepack_exec(field)

@@ -1,9 +1,10 @@
 
-#include <deal.II/lac/sparse_direct.h>
-#include <deal.II/numerics/matrix_tools.h>
-#include <icepack/physics/constants.hpp>
 #include <icepack/physics/ssa.hpp>
+#include <icepack/physics/constants.hpp>
 #include <icepack/numerics/optimization.hpp>
+#include <icepack/assembly.hpp>
+#include <deal.II/numerics/matrix_tools.h>
+#include <deal.II/lac/sparse_direct.h>
 
 using dealii::SymmetricTensor;
 using dealii::FEValues;
@@ -127,39 +128,27 @@ namespace icepack
     double P = 0.0;
 
     const auto quad = discretization.quad();
-    const unsigned int n_q_points = quad.size();
-
-    std::vector<double> h_values(n_q_points);
-    std::vector<double> theta_values(n_q_points);
-    std::vector<SymmetricTensor<2, 2>> eps_values(n_q_points);
-
-    using icepack::DefaultFlags::flags;
-
-    FEValues<2> u_fe_values(discretization(1).finite_element(), quad, flags);
-    const auto& exv = u_fe_values[dealii::FEValuesExtractors::Vector(0)];
-
-    FEValues<2> h_fe_values(discretization(0).finite_element(), quad, flags);
-    const auto& exs = h_fe_values[dealii::FEValuesExtractors::Scalar(0)];
+    auto assembly_data = make_assembly_data<2>(
+      evaluate::function(h),
+      evaluate::function(theta),
+      evaluate::symmetric_gradient(u)
+    );
 
     const double n = membrane_stress.rheology.n;
 
-    for (const auto& it: discretization)
+    for (const auto& cell: discretization)
     {
-      u_fe_values.reinit(std::get<1>(it));
-      h_fe_values.reinit(std::get<0>(it));
+      assembly_data.reinit(cell);
 
-      exs.get_function_values(h.coefficients(), h_values);
-      exs.get_function_values(theta.coefficients(), theta_values);
-      exv.get_function_symmetric_gradients(u.coefficients(), eps_values);
-
-      for (unsigned int q = 0; q < n_q_points; ++q)
+      for (unsigned int q = 0; q < quad.size(); ++q)
       {
-        const double dx = u_fe_values.JxW(q);
-        const double H = h_values[q];
-        const double T = theta_values[q];
-        const SymmetricTensor<2, 2> eps = eps_values[q];
+        const double dx = assembly_data.JxW(q);
+        const auto values = assembly_data.values(q);
+        const double H = std::get<0>(values);
+        const double T = std::get<1>(values);
+        const SymmetricTensor<2, 2> eps = std::get<2>(values);
         const SymmetricTensor<2, 2> M = membrane_stress(T, eps);
-        P += n / (n + 1) * H * (eps * M) * dx;
+        P += n / (n + 1) * H * (M * eps) * dx;
       }
     }
 
@@ -178,52 +167,40 @@ namespace icepack
     DualVectorField<2> f(discretization);
 
     const auto quad = discretization.quad();
-    const unsigned int n_q_points = quad.size();
+    auto assembly_data = make_assembly_data<2>(
+      evaluate::function(h),
+      evaluate::function(theta),
+      evaluate::symmetric_gradient(u)
+    );
 
-    std::vector<double> h_values(n_q_points);
-    std::vector<double> theta_values(n_q_points);
-    std::vector<SymmetricTensor<2, 2>> eps_values(n_q_points);
-
-    const auto& fe = discretization(1).finite_element();
-    const unsigned int dofs_per_cell = fe.dofs_per_cell;
-
+    const size_t dofs_per_cell =
+      discretization(1).finite_element().dofs_per_cell;
     dealii::Vector<double> cell_derivative(dofs_per_cell);
     std::vector<dealii::types::global_dof_index> local_dof_ids(dofs_per_cell);
 
-    using icepack::DefaultFlags::flags;
-
-    FEValues<2> u_fe_values(fe, quad, flags);
-    const auto& exv = u_fe_values[dealii::FEValuesExtractors::Vector(0)];
-
-    FEValues<2> h_fe_values(discretization(0).finite_element(), quad, flags);
-    const auto& exs = h_fe_values[dealii::FEValuesExtractors::Scalar(0)];
-
-    for (const auto& it: discretization)
+    for (const auto& cell: discretization)
     {
       cell_derivative = 0;
-      u_fe_values.reinit(std::get<1>(it));
-      h_fe_values.reinit(std::get<0>(it));
+      assembly_data.reinit(cell);
 
-      exs.get_function_values(h.coefficients(), h_values);
-      exs.get_function_values(theta.coefficients(), theta_values);
-      exv.get_function_symmetric_gradients(u.coefficients(), eps_values);
-
-      for (unsigned int q = 0; q < n_q_points; ++q)
+      for (unsigned int q = 0; q < quad.size(); ++q)
       {
-        const double dx = u_fe_values.JxW(q);
-        const double H = h_values[q];
-        const double T = theta_values[q];
-        const SymmetricTensor<2, 2> eps = eps_values[q];
+        const double dx = assembly_data.JxW(q);
+        const auto values = assembly_data.values(q);
+        const double H = std::get<0>(values);
+        const double T = std::get<1>(values);
+        const SymmetricTensor<2, 2> eps = std::get<2>(values);
         const SymmetricTensor<2, 2> M = membrane_stress(T, eps);
 
         for (unsigned int i = 0; i < dofs_per_cell; ++i)
         {
-          const SymmetricTensor<2, 2> eps_phi_i = exv.symmetric_gradient(i, q);
-          cell_derivative(i) += H * (eps_phi_i * M) * dx;
+          const SymmetricTensor<2, 2> eps_phi_i =
+            assembly_data.fe_values_view<1>().symmetric_gradient(i, q);
+          cell_derivative(i) += H * (M * eps_phi_i) * dx;
         }
       }
 
-      std::get<1>(it)->get_dof_indices(local_dof_ids);
+      std::get<1>(cell)->get_dof_indices(local_dof_ids);
       constraints.distribute_local_to_global(
         cell_derivative, local_dof_ids, f.coefficients()
       );
@@ -244,41 +221,28 @@ namespace icepack
     double df = 0.0;
 
     const auto quad = discretization.quad();
-    const unsigned int n_q_points = quad.size();
+    auto assembly_data = make_assembly_data<2>(
+      evaluate::function(h),
+      evaluate::function(theta),
+      evaluate::symmetric_gradient(u),
+      evaluate::symmetric_gradient(v)
+    );
 
-    std::vector<double> h_values(n_q_points);
-    std::vector<double> theta_values(n_q_points);
-    std::vector<SymmetricTensor<2, 2>> eps_u_values(n_q_points);
-    std::vector<SymmetricTensor<2, 2>> eps_v_values(n_q_points);
-
-    using icepack::DefaultFlags::flags;
-
-    FEValues<2> u_fe_values(discretization(1).finite_element(), quad, flags);
-    const auto& exv = u_fe_values[dealii::FEValuesExtractors::Vector(0)];
-
-    FEValues<2> h_fe_values(discretization(0).finite_element(), quad, flags);
-    const auto& exs = h_fe_values[dealii::FEValuesExtractors::Scalar(0)];
-
-    for (const auto& it: discretization)
+    for (const auto& cell: discretization)
     {
-      u_fe_values.reinit(std::get<1>(it));
-      h_fe_values.reinit(std::get<0>(it));
+      assembly_data.reinit(cell);
 
-      exs.get_function_values(h.coefficients(), h_values);
-      exs.get_function_values(theta.coefficients(), theta_values);
-      exv.get_function_symmetric_gradients(u.coefficients(), eps_u_values);
-      exv.get_function_symmetric_gradients(v.coefficients(), eps_v_values);
-
-      for (unsigned int q = 0; q < n_q_points; ++q)
+      for (unsigned int q = 0; q < quad.size(); ++q)
       {
-        const double dx = u_fe_values.JxW(q);
-        const double H = h_values[q];
-        const double T = theta_values[q];
-        const SymmetricTensor<2, 2> eps_u = eps_u_values[q];
+        const double dx = assembly_data.JxW(q);
+        const auto values = assembly_data.values(q);
+        const double H = std::get<0>(values);
+        const double T = std::get<1>(values);
+        const SymmetricTensor<2, 2> eps_u = std::get<2>(values);
+        const SymmetricTensor<2, 2> eps_v = std::get<3>(values);
         const SymmetricTensor<2, 2> M = membrane_stress(T, eps_u);
-        const SymmetricTensor<2, 2> eps_v = eps_v_values[q];
 
-        df += H * (eps_v * M) * dx;
+        df += H * (M * eps_v) * dx;
       }
     }
 
@@ -297,56 +261,44 @@ namespace icepack
     dealii::SparseMatrix<double> A(discretization.vector().sparsity_pattern());
 
     const auto quad = discretization.quad();
-    const unsigned int n_q_points = quad.size();
+    auto assembly_data = make_assembly_data<2>(
+      evaluate::function(h),
+      evaluate::function(theta),
+      evaluate::symmetric_gradient(u)
+    );
 
-    std::vector<double> h_values(n_q_points);
-    std::vector<double> theta_values(n_q_points);
-    std::vector<SymmetricTensor<2, 2>> eps_values(n_q_points);
-
-    const auto& fe = discretization(1).finite_element();
-    const unsigned int dofs_per_cell = fe.dofs_per_cell;
-
+    const size_t dofs_per_cell =
+      discretization(1).finite_element().dofs_per_cell;
     dealii::FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     std::vector<dealii::types::global_dof_index> local_dof_ids(dofs_per_cell);
+    const auto& view = assembly_data.fe_values_view<1>();
 
-    using icepack::DefaultFlags::flags;
-
-    FEValues<2> u_fe_values(fe, quad, flags);
-    const auto& exv = u_fe_values[dealii::FEValuesExtractors::Vector(0)];
-
-    FEValues<2> h_fe_values(discretization(0).finite_element(), quad, flags);
-    const auto& exs = h_fe_values[dealii::FEValuesExtractors::Scalar(0)];
-
-    for (const auto& it: discretization)
+    for (const auto& cell: discretization)
     {
       cell_matrix = 0;
-      u_fe_values.reinit(std::get<1>(it));
-      h_fe_values.reinit(std::get<0>(it));
+      assembly_data.reinit(cell);
 
-      exs.get_function_values(h.coefficients(), h_values);
-      exs.get_function_values(theta.coefficients(), theta_values);
-      exv.get_function_symmetric_gradients(u.coefficients(), eps_values);
-
-      for (unsigned int q = 0; q < n_q_points; ++q)
+      for (unsigned int q = 0; q < quad.size(); ++q)
       {
-        const double dx = u_fe_values.JxW(q);
-        const double H = h_values[q];
-        const double T = theta_values[q];
-        const SymmetricTensor<2, 2> eps = eps_values[q];
+        const double dx = assembly_data.JxW(q);
+        const auto values = assembly_data.values(q);
+        const double H = std::get<0>(values);
+        const double T = std::get<1>(values);
+        const SymmetricTensor<2, 2> eps = std::get<2>(values);
         const SymmetricTensor<4, 2> K = membrane_stress.du(T, eps);
 
         for (unsigned int i = 0; i < dofs_per_cell; ++i)
         {
-          const SymmetricTensor<2, 2> eps_phi_i = exv.symmetric_gradient(i, q);
+          const SymmetricTensor<2, 2> eps_i = view.symmetric_gradient(i, q);
           for (unsigned int j = 0; j < dofs_per_cell; ++j)
           {
-            const SymmetricTensor<2, 2> eps_phi_j = exv.symmetric_gradient(j, q);
-            cell_matrix(i, j) += H * (eps_phi_i * K * eps_phi_j) * dx;
+            const SymmetricTensor<2, 2> eps_j = view.symmetric_gradient(j, q);
+            cell_matrix(i, j) += H * (eps_i * K * eps_j) * dx;
           }
         }
       }
 
-      std::get<1>(it)->get_dof_indices(local_dof_ids);
+      std::get<1>(cell)->get_dof_indices(local_dof_ids);
       constraints.distribute_local_to_global(cell_matrix, local_dof_ids, A);
     }
 
@@ -363,36 +315,25 @@ namespace icepack
     double P = 0.0;
 
     const auto quad = discretization.quad();
-    const unsigned int n_q_points = quad.size();
-
-    std::vector<double> h_values(n_q_points);
-    std::vector<double> div_u_values(n_q_points);
-
-    using icepack::DefaultFlags::flags;
-
-    FEValues<2> u_fe_values(discretization(1).finite_element(), quad, flags);
-    const auto& exv = u_fe_values[dealii::FEValuesExtractors::Vector(0)];
-
-    FEValues<2> h_fe_values(discretization(0).finite_element(), quad, flags);
-    const auto& exs = h_fe_values[dealii::FEValuesExtractors::Scalar(0)];
+    auto assembly_data = make_assembly_data<2>(
+      evaluate::function(h),
+      evaluate::divergence(u)
+    );
 
     using namespace icepack::constants;
     const double Rho = rho_ice * (1 - rho_ice / rho_water);
 
-    for (const auto& it: discretization)
+    for (const auto& cell: discretization)
     {
-      u_fe_values.reinit(std::get<1>(it));
-      h_fe_values.reinit(std::get<0>(it));
+      assembly_data.reinit(cell);
 
-      exs.get_function_values(h.coefficients(), h_values);
-      exv.get_function_divergences(u.coefficients(), div_u_values);
-
-      for (unsigned int q = 0; q < n_q_points; ++q)
+      for (unsigned int q = 0; q < quad.size(); ++q)
       {
-        const double dx = h_fe_values.JxW(q);
-        const double H = h_values[q];
-        const double divU = div_u_values[q];
-        P -= 0.5 * Rho * gravity * H * H * divU * dx;
+        const double dx = assembly_data.JxW(q);
+        const auto values = assembly_data.values(q);
+        const double H = std::get<0>(values);
+        const double div_U = std::get<1>(values);
+        P -= 0.5 * Rho * gravity * H * H * div_U * dx;
       }
     }
 
@@ -409,48 +350,36 @@ namespace icepack
     DualVectorField<2> tau(discretization);
 
     const auto quad = discretization.quad();
-    const unsigned int n_q_points = quad.size();
+    auto assembly_data = make_assembly_data<2>(evaluate::function(h));
 
-    std::vector<double> h_values(n_q_points);
-
-    const auto& fe = discretization(1).finite_element();
-
-    const unsigned int dofs_per_cell = fe.dofs_per_cell;
+    const size_t dofs_per_cell =
+      discretization(1).finite_element().dofs_per_cell;
     dealii::Vector<double> cell_derivative(dofs_per_cell);
     std::vector<dealii::types::global_dof_index> local_dof_ids(dofs_per_cell);
 
     using namespace icepack::constants;
     const double Rho = rho_ice * (1 - rho_ice / rho_water);
 
-    using DefaultFlags::flags;
-    FEValues<2> tau_fe_values(fe, quad, flags);
-    const auto& exv = tau_fe_values[dealii::FEValuesExtractors::Vector(0)];
-
-    FEValues<2> h_fe_values(discretization(0).finite_element(), quad, flags);
-    const auto& exs = h_fe_values[dealii::FEValuesExtractors::Scalar(0)];
-
-    for (const auto& it: discretization)
+    for (const auto& cell: discretization)
     {
       cell_derivative = 0;
-      tau_fe_values.reinit(std::get<1>(it));
-      h_fe_values.reinit(std::get<0>(it));
+      assembly_data.reinit(cell);
 
-      exs.get_function_values(h.coefficients(), h_values);
-
-      for (unsigned int q = 0; q < n_q_points; ++q)
+      for (unsigned int q = 0; q < quad.size(); ++q)
       {
-        const double dx = tau_fe_values.JxW(q);
-        const double H = h_values[q];
+        const double dx = assembly_data.JxW(q);
+        const double H = std::get<0>(assembly_data.values(q));
         const double Tau = -0.5 * Rho * gravity * H * H;
 
         for (unsigned int i = 0; i < dofs_per_cell; ++i)
         {
-          const double div_phi_i = exv.divergence(i, q);
+          const double div_phi_i =
+            assembly_data.fe_values_view<1>().divergence(i, q);
           cell_derivative(i) += Tau * div_phi_i * dx;
         }
       }
 
-      std::get<1>(it)->get_dof_indices(local_dof_ids);
+      std::get<1>(cell)->get_dof_indices(local_dof_ids);
       constraints.distribute_local_to_global(
         cell_derivative, local_dof_ids, tau.coefficients()
       );
