@@ -124,10 +124,6 @@ namespace icepack
     const VectorField<2>& u
   ) const
   {
-    const auto& discretization = get_discretization(h, theta, u);
-    double P = 0.0;
-
-    const auto quad = discretization.quad();
     auto assembly_data = make_assembly_data<2>(
       evaluate::function(h),
       evaluate::function(theta),
@@ -135,24 +131,14 @@ namespace icepack
     );
 
     const double n = membrane_stress.rheology.n;
-
-    for (const auto& cell: discretization)
-    {
-      assembly_data.reinit(cell);
-
-      for (unsigned int q = 0; q < quad.size(); ++q)
+    const auto f =
+      [&](const double H, const double T, const SymmetricTensor<2, 2> eps)
       {
-        const double dx = assembly_data.JxW(q);
-        const auto values = assembly_data.values(q);
-        const double H = std::get<0>(values);
-        const double T = std::get<1>(values);
-        const SymmetricTensor<2, 2> eps = std::get<2>(values);
         const SymmetricTensor<2, 2> M = membrane_stress(T, eps);
-        P += n / (n + 1) * H * (M * eps) * dx;
-      }
-    }
+        return n / (n + 1) * H * (M * eps);
+      };
 
-    return P;
+    return integrate(f, get_discretization(h, theta, u), assembly_data);
   }
 
 
@@ -311,10 +297,6 @@ namespace icepack
 
   double Gravity::action(const Field<2>& h, const VectorField<2>& u) const
   {
-    const auto& discretization = get_discretization(h, u);
-    double P = 0.0;
-
-    const auto quad = discretization.quad();
     auto assembly_data = make_assembly_data<2>(
       evaluate::function(h),
       evaluate::divergence(u)
@@ -322,22 +304,13 @@ namespace icepack
 
     using namespace icepack::constants;
     const double Rho = rho_ice * (1 - rho_ice / rho_water);
-
-    for (const auto& cell: discretization)
-    {
-      assembly_data.reinit(cell);
-
-      for (unsigned int q = 0; q < quad.size(); ++q)
+    const auto f =
+      [&](const double H, const double div_U)
       {
-        const double dx = assembly_data.JxW(q);
-        const auto values = assembly_data.values(q);
-        const double H = std::get<0>(values);
-        const double div_U = std::get<1>(values);
-        P -= 0.5 * Rho * gravity * H * H * div_U * dx;
-      }
-    }
+        return -0.5 * Rho * gravity * H * H * div_U;
+      };
 
-    return P;
+    return integrate(f, get_discretization(h, u), assembly_data);
   }
 
 

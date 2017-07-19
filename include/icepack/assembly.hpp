@@ -334,6 +334,55 @@ namespace icepack
   };
 
 
+  namespace internal
+  {
+    template <typename F, typename Tuple, size_t... I>
+    decltype(auto) apply_impl(F&& f, Tuple&& tuple, std::index_sequence<I...>)
+    {
+      return std::forward<F>(f)(std::get<I>(std::forward<Tuple>(tuple))...);
+    }
+
+    template <typename F, typename Tuple>
+    decltype(auto) apply(F&& f, Tuple&& tuple)
+    {
+      constexpr size_t N =
+        std::tuple_size<typename std::remove_reference<Tuple>::type>::value;
+      return apply_impl(f, tuple, std::make_index_sequence<N>());
+    }
+  }
+
+
+  /**
+   * Evaluate a functional of several fields given the kernel and some assembly
+   * data
+   */
+  template <typename Functional, int dim, typename... Args>
+  double integrate(
+    Functional&& f,
+    const Discretization<dim>& discretization,
+    AssemblyData<dim, Args...>& assembly_data
+  )
+  {
+    const dealii::QGauss<dim>& quad = discretization.quad();
+    const size_t n_q_points = quad.size();
+
+    double integral = 0.0;
+    for (const auto& cell: discretization)
+    {
+      assembly_data.reinit(cell);
+
+      for (size_t q = 0; q < n_q_points; ++q)
+      {
+        const double dx = assembly_data.JxW(q);
+        const double cell_value = internal::apply(f, assembly_data.values(q));
+        integral += cell_value * dx;
+      }
+    }
+
+    return integral;
+  }
+
+
 
   /* ------------------------------------
    * Implementations of evaluator methods
