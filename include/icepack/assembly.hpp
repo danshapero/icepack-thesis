@@ -427,6 +427,51 @@ namespace icepack
   }
 
 
+  template <typename Functional, int rank, int dim, typename T, typename... Args>
+  FieldType<rank, dim, dual> assemble_dual_field(
+    Functional&& F,
+    const Discretization<dim>& discretization,
+    const dealii::ConstraintMatrix& constraints,
+    const ShapeFn<rank, dim, T>& shape_fn,
+    AssemblyData<dim, Args...>& assembly_data
+  )
+  {
+    const dealii::QGauss<dim> quad = discretization.quad();
+
+    const size_t n_dofs = discretization(rank).finite_element().dofs_per_cell;
+    dealii::Vector<double> cell_f(n_dofs);
+    std::vector<dealii::types::global_dof_index> dof_ids(n_dofs);
+
+    FieldType<rank, dim, dual> f(discretization);
+
+    const auto& view = assembly_data.template fe_values_view<rank>();
+    for (const auto& cell: discretization)
+    {
+      assembly_data.reinit(cell);
+      cell_f = 0;
+
+      for (size_t q = 0; q < quad.size(); ++q)
+      {
+        const double dx = assembly_data.JxW(q);
+        const auto values = assembly_data.values(q);
+
+        for (unsigned int i = 0; i < n_dofs; ++i)
+        {
+          const T phi_i = shape_fn(view, i, q);
+          const double cell_value =
+            internal::apply(F, std::tuple_cat(values, std::make_tuple(phi_i)));
+          cell_f(i) += cell_value * dx;
+        }
+      }
+
+      std::get<rank>(cell)->get_dof_indices(dof_ids);
+      constraints.distribute_local_to_global(cell_f, dof_ids, f.coefficients());
+    }
+
+    return f;
+  }
+
+
 
   /* ------------------------------------
    * Implementations of evaluator methods

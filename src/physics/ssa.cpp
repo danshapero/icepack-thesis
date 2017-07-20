@@ -149,50 +149,26 @@ namespace icepack
     const dealii::ConstraintMatrix& constraints
   ) const
   {
-    const auto& discretization = get_discretization(h, theta, u);
-    DualVectorField<2> f(discretization);
-
-    const auto quad = discretization.quad();
     auto assembly_data = make_assembly_data<2>(
       evaluate::function(h),
       evaluate::function(theta),
       evaluate::symmetric_gradient(u)
     );
 
-    const size_t dofs_per_cell =
-      discretization(1).finite_element().dofs_per_cell;
-    dealii::Vector<double> cell_derivative(dofs_per_cell);
-    std::vector<dealii::types::global_dof_index> local_dof_ids(dofs_per_cell);
-
-    for (const auto& cell: discretization)
+    const auto F = [&](
+      const double H,
+      const double T,
+      const SymmetricTensor<2, 2> eps_u,
+      const SymmetricTensor<2, 2> eps_v
+    )
     {
-      cell_derivative = 0;
-      assembly_data.reinit(cell);
+      const SymmetricTensor<2, 2> M = membrane_stress(T, eps_u);
+      return H * (M * eps_v);
+    };
 
-      for (unsigned int q = 0; q < quad.size(); ++q)
-      {
-        const double dx = assembly_data.JxW(q);
-        const auto values = assembly_data.values(q);
-        const double H = std::get<0>(values);
-        const double T = std::get<1>(values);
-        const SymmetricTensor<2, 2> eps = std::get<2>(values);
-        const SymmetricTensor<2, 2> M = membrane_stress(T, eps);
-
-        for (unsigned int i = 0; i < dofs_per_cell; ++i)
-        {
-          const SymmetricTensor<2, 2> eps_phi_i =
-            assembly_data.fe_values_view<1>().symmetric_gradient(i, q);
-          cell_derivative(i) += H * (M * eps_phi_i) * dx;
-        }
-      }
-
-      std::get<1>(cell)->get_dof_indices(local_dof_ids);
-      constraints.distribute_local_to_global(
-        cell_derivative, local_dof_ids, f.coefficients()
-      );
-    }
-
-    return f;
+    const auto eps_v = vector_shape_fn<2>::symmetric_gradient();
+    const auto& dsc = get_discretization(h, theta, u);
+    return assemble_dual_field(F, dsc, constraints, eps_v, assembly_data);
   }
 
 
