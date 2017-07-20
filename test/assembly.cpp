@@ -30,6 +30,9 @@ int main()
   {
     const auto phi_evaluator = icepack::evaluate::function(phi);
     const auto grad_evaluator = icepack::evaluate::gradient(phi);
+
+    const auto shape_fn = icepack::scalar_shape_fn<2>::value();
+    const auto grad_shape_fn = icepack::scalar_shape_fn<2>::gradient();
   }
 
 
@@ -101,6 +104,53 @@ int main()
 
       for (size_t q = 0; q < face_quad.size(); ++q)
         CHECK(assembly_face_data.JxW(q) > 0);
+    }
+  }
+
+
+  TEST_SUITE("shape functions")
+  {
+    auto assembly_data = icepack::make_assembly_data<2>(
+      icepack::evaluate::function(phi),
+      icepack::evaluate::gradient(phi),
+      icepack::evaluate::symmetric_gradient(u)
+    );
+
+    const dealii::QGauss<2> quad = discretization.quad();
+    const size_t n_q_points = quad.size();
+
+    const auto cell = discretization.begin();
+    assembly_data.reinit(cell);
+    const auto& scalar_view = assembly_data.fe_values_view<0>();
+    const auto& vector_view = assembly_data.fe_values_view<1>();
+
+    TEST_SUITE("scalar")
+    {
+      const auto grad_phi_fn = icepack::scalar_shape_fn<2>::gradient();
+
+      const size_t n_dofs = discretization(0).finite_element().dofs_per_cell;
+      for (unsigned int q = 0; q < n_q_points; ++q)
+      {
+        for (unsigned int i = 0; i < n_dofs; ++i)
+          CHECK(grad_phi_fn(scalar_view, i, q).norm() > 0);
+      }
+    }
+
+
+    TEST_SUITE("vector")
+    {
+      const auto grad_u_fn = icepack::vector_shape_fn<2>::gradient();
+      const auto eps_u_fn = icepack::vector_shape_fn<2>::symmetric_gradient();
+
+      const size_t n_dofs = discretization(1).finite_element().dofs_per_cell;
+      for (unsigned int q = 0; q < n_q_points; ++q)
+      {
+        for (unsigned int i = 0; i < n_dofs; ++i)
+        {
+          CHECK(grad_u_fn(vector_view, i, q).norm() > 0);
+          CHECK(eps_u_fn(vector_view, i, q).norm() > 0);
+        }
+      }
     }
   }
 

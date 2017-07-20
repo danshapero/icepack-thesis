@@ -73,6 +73,49 @@ namespace icepack
 
 
   /**
+   * @brief Helper struct for evaluating shape functions
+   */
+  template <int rank, int dim, typename T>
+  struct ShapeFn
+  {
+    using view_type = typename FieldType<rank, dim>::view_type;
+
+    T operator()(
+      const view_type& view,
+      const unsigned int dof_index,
+      const unsigned int quadrature_point
+    ) const;
+
+    using method_type =
+      T (view_type::*)(const unsigned int, const unsigned int) const;
+    const method_type method;
+  };
+
+
+  template <int dim>
+  struct scalar_shape_fn
+  {
+    using view_type = typename Field<dim>::view_type;
+
+    static ShapeFn<0, dim, double> value();
+    static ShapeFn<0, dim, dealii::Tensor<1, dim>> gradient();
+  };
+
+
+  template <int dim>
+  struct vector_shape_fn
+  {
+    using view_type = typename VectorField<dim>::view_type;
+
+    static ShapeFn<1, dim, dealii::Tensor<1, dim>> value();
+    static ShapeFn<1, dim, dealii::Tensor<2, dim>> gradient();
+    static ShapeFn<1, dim, dealii::SymmetricTensor<2, dim>> symmetric_gradient();
+    static ShapeFn<1, dim, double> divergence();
+  };
+
+
+
+  /**
    * @brief Base class for keeping track of values and gradients of several
    * fields during finite element assembly
    *
@@ -303,7 +346,6 @@ namespace icepack
    */
   struct evaluate
   {
-  public:
     /**
      * Returns an object for computing the values of a finite element field on
      * cells of a triangulation (as opposed to any of its derivatives)
@@ -355,6 +397,8 @@ namespace icepack
   /**
    * Evaluate a functional of several fields given the kernel and some assembly
    * data
+   *
+   * @ingroup assembly
    */
   template <typename Functional, int dim, typename... Args>
   double integrate(
@@ -482,6 +526,66 @@ namespace icepack
   )
   {
     eval(view, field, values);
+  }
+
+
+
+  /* ------------------------------------
+   * Implementations of `ShapeFn` methods
+   * ------------------------------------ */
+
+  template <int rank, int dim, typename T>
+  T ShapeFn<rank, dim, T>::operator()(
+    const view_type& view,
+    const unsigned int dof_index,
+    const unsigned int quadrature_point
+  ) const
+  {
+    return (view.*method)(dof_index, quadrature_point);
+  }
+
+
+  template <int dim>
+  ShapeFn<0, dim, double> scalar_shape_fn<dim>::value()
+  {
+    return ShapeFn<0, dim, double>{&view_type::value};
+  }
+
+
+  template <int dim>
+  ShapeFn<0, dim, dealii::Tensor<1, dim>> scalar_shape_fn<dim>::gradient()
+  {
+    return ShapeFn<0, dim, dealii::Tensor<1, dim>>{&view_type::gradient};
+  }
+
+
+  template <int dim>
+  ShapeFn<1, dim, dealii::Tensor<1, dim>> vector_shape_fn<dim>::value()
+  {
+    return ShapeFn<1, dim, dealii::Tensor<1, dim>>{&view_type::value};
+  }
+
+
+  template <int dim>
+  ShapeFn<1, dim, dealii::Tensor<2, dim>> vector_shape_fn<dim>::gradient()
+  {
+    return ShapeFn<1, dim, dealii::Tensor<2, dim>>{&view_type::gradient};
+  }
+
+
+  template <int dim>
+  ShapeFn<1, dim, dealii::SymmetricTensor<2, dim>>
+  vector_shape_fn<dim>::symmetric_gradient()
+  {
+    return ShapeFn<1, dim, dealii::SymmetricTensor<2, dim>>{&view_type::symmetric_gradient};
+  }
+
+
+  template <int dim>
+  ShapeFn<1, dim, double>
+  vector_shape_fn<dim>::divergence()
+  {
+    return ShapeFn<1, dim, double>{&view_type::divergence};
   }
 
 
