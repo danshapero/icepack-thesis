@@ -131,14 +131,14 @@ namespace icepack
     );
 
     const double n = membrane_stress.rheology.n;
-    const auto f =
-      [&](const double H, const double T, const SymmetricTensor<2, 2> eps)
-      {
-        const SymmetricTensor<2, 2> M = membrane_stress(T, eps);
-        return n / (n + 1) * H * (M * eps);
-      };
+    const auto Functional =
+    [&](const double H, const double T, const SymmetricTensor<2, 2> eps)
+    {
+      const SymmetricTensor<2, 2> M = membrane_stress(T, eps);
+      return n / (n + 1) * H * (M * eps);
+    };
 
-    return integrate(f, assembly_data);
+    return integrate(Functional, assembly_data);
   }
 
 
@@ -155,7 +155,8 @@ namespace icepack
       evaluate::symmetric_gradient(u)
     );
 
-    const auto F = [&](
+    const auto Functional =
+    [&](
       const double H,
       const double T,
       const SymmetricTensor<2, 2> eps_u,
@@ -167,7 +168,7 @@ namespace icepack
     };
 
     const auto eps_v = vector_shape_fn<2>::symmetric_gradient();
-    return integrate(F, constraints, eps_v, assembly_data);
+    return integrate(Functional, constraints, eps_v, assembly_data);
   }
 
 
@@ -185,7 +186,8 @@ namespace icepack
       evaluate::symmetric_gradient(v)
     );
 
-    const auto F = [&](
+    const auto Functional =
+    [&](
       const double H,
       const double T,
       const SymmetricTensor<2, 2> eps_u,
@@ -196,7 +198,7 @@ namespace icepack
       return H * (M * eps_v);
     };
 
-    return integrate(F, assembly_data);
+    return integrate(Functional, assembly_data);
   }
 
 
@@ -268,13 +270,12 @@ namespace icepack
 
     using namespace icepack::constants;
     const double Rho = rho_ice * (1 - rho_ice / rho_water);
-    const auto f =
-      [&](const double H, const double div_U)
-      {
-        return -0.5 * Rho * gravity * H * H * div_U;
-      };
+    const auto Functional = [&](const double H, const double div_U)
+    {
+      return -0.5 * Rho * gravity * H * H * div_U;
+    };
 
-    return integrate(f, assembly_data);
+    return integrate(Functional, assembly_data);
   }
 
 
@@ -287,13 +288,13 @@ namespace icepack
 
     using namespace icepack::constants;
     const double Rho = rho_ice * (1 - rho_ice / rho_water);
-    const auto F = [&](const double H, const double div_v)
+    const auto Functional = [&](const double H, const double div_v)
     {
       return -0.5 * Rho * gravity * H * H * div_v;
     };
 
     const auto div_v = vector_shape_fn<2>::divergence();
-    return integrate(F, constraints, div_v, assembly_data);
+    return integrate(Functional, constraints, div_v, assembly_data);
   }
 
 
