@@ -209,52 +209,28 @@ namespace icepack
     const dealii::ConstraintMatrix& constraints
   ) const
   {
-    const auto& discretization = get_discretization(h, theta, u);
-    dealii::SparseMatrix<double> A(discretization.vector().sparsity_pattern());
-
-    const auto quad = discretization.quad();
     auto assembly_data = make_assembly_data<2>(
       evaluate::function(h),
       evaluate::function(theta),
       evaluate::symmetric_gradient(u)
     );
 
-    const size_t dofs_per_cell =
-      discretization(1).finite_element().dofs_per_cell;
-    dealii::FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
-    std::vector<dealii::types::global_dof_index> local_dof_ids(dofs_per_cell);
-    const auto& view = assembly_data.fe_values_view<1>();
-
-    for (const auto& cell: discretization)
+    const auto Functional =
+    [&](
+      const double H,
+      const double T,
+      const SymmetricTensor<2, 2> eps_u,
+      const SymmetricTensor<2, 2> eps_v,
+      const SymmetricTensor<2, 2> eps_w
+    )
     {
-      cell_matrix = 0;
-      assembly_data.reinit(cell);
+      const SymmetricTensor<4, 2> K = membrane_stress.du(T, eps_u);
+      return H * (eps_v * K * eps_w);
+    };
 
-      for (unsigned int q = 0; q < quad.size(); ++q)
-      {
-        const double dx = assembly_data.JxW(q);
-        const auto values = assembly_data.values(q);
-        const double H = std::get<0>(values);
-        const double T = std::get<1>(values);
-        const SymmetricTensor<2, 2> eps = std::get<2>(values);
-        const SymmetricTensor<4, 2> K = membrane_stress.du(T, eps);
-
-        for (unsigned int i = 0; i < dofs_per_cell; ++i)
-        {
-          const SymmetricTensor<2, 2> eps_i = view.symmetric_gradient(i, q);
-          for (unsigned int j = 0; j < dofs_per_cell; ++j)
-          {
-            const SymmetricTensor<2, 2> eps_j = view.symmetric_gradient(j, q);
-            cell_matrix(i, j) += H * (eps_i * K * eps_j) * dx;
-          }
-        }
-      }
-
-      std::get<1>(cell)->get_dof_indices(local_dof_ids);
-      constraints.distribute_local_to_global(cell_matrix, local_dof_ids, A);
-    }
-
-    return A;
+    const auto eps_v = vector_shape_fn<2>::symmetric_gradient();
+    const auto eps_w = vector_shape_fn<2>::symmetric_gradient();
+    return integrate(Functional, constraints, eps_v, eps_w, assembly_data);
   }
 
 

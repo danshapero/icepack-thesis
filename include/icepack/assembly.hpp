@@ -472,6 +472,56 @@ namespace icepack
   }
 
 
+  template <typename Functional, int rank, int dim, typename T1, typename T2, typename... Args>
+  dealii::SparseMatrix<double> integrate(
+    Functional&& F,
+    const dealii::ConstraintMatrix& constraints,
+    const ShapeFn<rank, dim, T1>& shape_fn1,
+    const ShapeFn<rank, dim, T2>& shape_fn2,
+    AssemblyData<dim, Args...>& assembly_data
+  )
+  {
+    const Discretization<dim>& discretization = assembly_data.discretization();
+    const dealii::QGauss<dim> quad = discretization.quad();
+
+    const size_t n_dofs = discretization(rank).finite_element().dofs_per_cell;
+    dealii::FullMatrix<double> cell_m(n_dofs, n_dofs);
+    std::vector<dealii::types::global_dof_index> dof_ids(n_dofs);
+
+    dealii::SparseMatrix<double> M(discretization(rank).sparsity_pattern());
+
+    const auto& view = assembly_data.template fe_values_view<rank>();
+    for (const auto& cell: discretization)
+    {
+      assembly_data.reinit(cell);
+      cell_m = 0;
+
+      for (size_t q = 0; q < quad.size(); ++q)
+      {
+        const double dx = assembly_data.JxW(q);
+        const auto values = assembly_data.values(q);
+
+        for (unsigned int i = 0; i < n_dofs; ++i)
+        {
+          const T1 phi_i = shape_fn1(view, i, q);
+          for (unsigned int j = 0; j < n_dofs; ++j)
+          {
+            const T2 phi_j = shape_fn2(view, j, q);
+            const double cell_value =
+              internal::apply(F, std::tuple_cat(values, std::make_tuple(phi_i, phi_j)));
+            cell_m(i, j) += cell_value * dx;
+          }
+        }
+      }
+
+      std::get<rank>(cell)->get_dof_indices(dof_ids);
+      constraints.distribute_local_to_global(cell_m, dof_ids, M);
+    }
+
+    return M;
+  }
+
+
 
   /* ------------------------------------
    * Implementations of evaluator methods
