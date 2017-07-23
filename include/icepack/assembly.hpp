@@ -238,6 +238,11 @@ namespace icepack
     AssemblyData(const size_t n_q_points, Args&&... args);
 
     /**
+     * Copy constructor
+     */
+    AssemblyData(const AssemblyData<dim, Args...>& assembly_data);
+
+    /**
      * Reinitialize the stored `dealii::FEValues` objects and all of the field
      * evaluators for the current cell
      */
@@ -283,6 +288,11 @@ namespace icepack
      * constructor for this class directly.
      */
     AssemblyFaceData(const size_t n_q_points, Args&&... args);
+
+    /**
+     * Copy constructor
+     */
+    AssemblyFaceData(const AssemblyFaceData<dim, Args...>& assembly_face_data);
 
     /**
      * Reinitialize the stored `dealii::FEFaceValues` objects and all of the
@@ -845,6 +855,14 @@ namespace icepack
   {}
 
 
+  template <int dim, typename...Args>
+  AssemblyData<dim, Args...>::
+  AssemblyData(const AssemblyData<dim, Args...>& assembly_data) :
+    AssemblyDataBase<AssemblyData<dim, Args...>, dim, Args...>(assembly_data),
+    fe_values(internal::make_fe_values_pair(assembly_data.discretization()))
+  {}
+
+
   template <int dim, typename... Args>
   void AssemblyData<dim, Args...>::
   reinit(const typename Discretization<dim>::iterator& cell)
@@ -891,6 +909,16 @@ namespace icepack
       (n_q_points, std::forward<Args>(args)...),
     fe_values
       (internal::make_fe_face_values_pair(get_discretization(args.field...)))
+  {}
+
+
+  template <int dim, typename... Args>
+  AssemblyFaceData<dim, Args...>::
+  AssemblyFaceData(const AssemblyFaceData<dim, Args...>& assembly_face_data) :
+    AssemblyDataBase<AssemblyFaceData<dim, Args...>, dim, Args...>
+      (assembly_face_data),
+    fe_values
+      (internal::make_fe_face_values_pair(assembly_face_data.discretization()))
   {}
 
 

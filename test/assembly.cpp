@@ -50,6 +50,9 @@ int main()
 
     std::tuple<double, dealii::Tensor<1, 2>> t;
     CHECK(typeid(assembly_data.values(0)).name() == typeid(t).name());
+
+    const auto assembly_data_copy = assembly_data;
+    const auto assembly_face_data_copy = assembly_face_data;
   }
 
 
