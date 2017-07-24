@@ -167,7 +167,7 @@ namespace icepack
       return H * (M * eps_v);
     };
 
-    const auto eps_v = vector_shape_fn<2>::symmetric_gradient();
+    const auto eps_v = shape_functions<2>::vector::symmetric_gradient();
     return integrate(Functional, constraints, eps_v, assembly_data);
   }
 
@@ -228,8 +228,8 @@ namespace icepack
       return H * (eps_v * K * eps_w);
     };
 
-    const auto eps_v = vector_shape_fn<2>::symmetric_gradient();
-    const auto eps_w = vector_shape_fn<2>::symmetric_gradient();
+    const auto eps_v = shape_functions<2>::vector::symmetric_gradient();
+    const auto eps_w = shape_functions<2>::vector::symmetric_gradient();
     return integrate(Functional, constraints, eps_v, eps_w, assembly_data);
   }
 
@@ -269,7 +269,7 @@ namespace icepack
       return -0.5 * Rho * gravity * H * H * div_v;
     };
 
-    const auto div_v = vector_shape_fn<2>::divergence();
+    const auto div_v = shape_functions<2>::vector::divergence();
     return integrate(Functional, constraints, div_v, assembly_data);
   }
 

@@ -31,8 +31,11 @@ int main()
     const auto phi_evaluator = icepack::evaluate::function(phi);
     const auto grad_evaluator = icepack::evaluate::gradient(phi);
 
-    const auto shape_fn = icepack::scalar_shape_fn<2>::value();
-    const auto grad_shape_fn = icepack::scalar_shape_fn<2>::gradient();
+    const auto shape = icepack::shape_functions<2>::scalar::value();
+    const auto shape_grad = icepack::shape_functions<2>::scalar::gradient();
+
+    std::cout << typeid(shape.method).name() << "\n"
+              << typeid(shape_grad.method).name() << "\n";
   }
 
 
@@ -129,29 +132,30 @@ int main()
 
     TEST_SUITE("scalar")
     {
-      const auto grad_phi_fn = icepack::scalar_shape_fn<2>::gradient();
+      const auto shape_grad = icepack::shape_functions<2>::scalar::gradient();
 
       const size_t n_dofs = discretization(0).finite_element().dofs_per_cell;
       for (unsigned int q = 0; q < n_q_points; ++q)
       {
         for (unsigned int i = 0; i < n_dofs; ++i)
-          CHECK(grad_phi_fn(scalar_view, i, q).norm() > 0);
+          CHECK(shape_grad(scalar_view, i, q).norm() > 0);
       }
     }
 
 
     TEST_SUITE("vector")
     {
-      const auto grad_u_fn = icepack::vector_shape_fn<2>::gradient();
-      const auto eps_u_fn = icepack::vector_shape_fn<2>::symmetric_gradient();
+      const auto grad_u = icepack::shape_functions<2>::vector::gradient();
+      const auto eps_u =
+        icepack::shape_functions<2>::vector::symmetric_gradient();
 
       const size_t n_dofs = discretization(1).finite_element().dofs_per_cell;
       for (unsigned int q = 0; q < n_q_points; ++q)
       {
         for (unsigned int i = 0; i < n_dofs; ++i)
         {
-          CHECK(grad_u_fn(vector_view, i, q).norm() > 0);
-          CHECK(eps_u_fn(vector_view, i, q).norm() > 0);
+          CHECK(grad_u(vector_view, i, q).norm() > 0);
+          CHECK(eps_u(vector_view, i, q).norm() > 0);
         }
       }
     }

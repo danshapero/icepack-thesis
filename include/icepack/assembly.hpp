@@ -80,6 +80,10 @@ namespace icepack
   {
     using view_type = typename FieldType<rank, dim>::view_type;
 
+    /**
+     * Evaluate the stored method for the FE values view for a degree-of-
+     * freedom at a quadrature point of the cell
+     */
     T operator()(
       const view_type& view,
       const unsigned int dof_index,
@@ -92,25 +96,42 @@ namespace icepack
   };
 
 
+  /**
+   * @brief Makes proxy objects for evaluating shape functions
+   *
+   * @ingroup assembly
+   */
   template <int dim>
-  struct scalar_shape_fn
+  struct shape_functions
   {
-    using view_type = typename Field<dim>::view_type;
+    /**
+     * Make proxy objects for evaluating scalar shape functions
+     */
+    struct scalar
+    {
+      using view_type = typename Field<dim>::view_type;
 
-    static ShapeFn<0, dim, double> value();
-    static ShapeFn<0, dim, dealii::Tensor<1, dim>> gradient();
-  };
+      static ShapeFn<0, dim, double> value();
 
+      static ShapeFn<0, dim, dealii::Tensor<1, dim>> gradient();
+    };
 
-  template <int dim>
-  struct vector_shape_fn
-  {
-    using view_type = typename VectorField<dim>::view_type;
+    /**
+     * Make proxy objects for evaluating vector shape functions
+     */
+    struct vector
+    {
+      using view_type = typename VectorField<dim>::view_type;
 
-    static ShapeFn<1, dim, dealii::Tensor<1, dim>> value();
-    static ShapeFn<1, dim, dealii::Tensor<2, dim>> gradient();
-    static ShapeFn<1, dim, dealii::SymmetricTensor<2, dim>> symmetric_gradient();
-    static ShapeFn<1, dim, double> divergence();
+      static ShapeFn<1, dim, dealii::Tensor<1, dim>> value();
+
+      static ShapeFn<1, dim, dealii::Tensor<2, dim>> gradient();
+
+      static ShapeFn<1, dim, dealii::SymmetricTensor<2, dim>>
+      symmetric_gradient();
+
+      static ShapeFn<1, dim, double> divergence();
+    };
   };
 
 
@@ -651,28 +672,30 @@ namespace icepack
 
 
   template <int dim>
-  ShapeFn<0, dim, double> scalar_shape_fn<dim>::value()
+  ShapeFn<0, dim, double> shape_functions<dim>::scalar::value()
   {
     return ShapeFn<0, dim, double>{&view_type::value};
   }
 
 
   template <int dim>
-  ShapeFn<0, dim, dealii::Tensor<1, dim>> scalar_shape_fn<dim>::gradient()
+  ShapeFn<0, dim, dealii::Tensor<1, dim>>
+  shape_functions<dim>::scalar::gradient()
   {
     return ShapeFn<0, dim, dealii::Tensor<1, dim>>{&view_type::gradient};
   }
 
 
   template <int dim>
-  ShapeFn<1, dim, dealii::Tensor<1, dim>> vector_shape_fn<dim>::value()
+  ShapeFn<1, dim, dealii::Tensor<1, dim>> shape_functions<dim>::vector::value()
   {
     return ShapeFn<1, dim, dealii::Tensor<1, dim>>{&view_type::value};
   }
 
 
   template <int dim>
-  ShapeFn<1, dim, dealii::Tensor<2, dim>> vector_shape_fn<dim>::gradient()
+  ShapeFn<1, dim, dealii::Tensor<2, dim>>
+  shape_functions<dim>::vector::gradient()
   {
     return ShapeFn<1, dim, dealii::Tensor<2, dim>>{&view_type::gradient};
   }
@@ -680,15 +703,16 @@ namespace icepack
 
   template <int dim>
   ShapeFn<1, dim, dealii::SymmetricTensor<2, dim>>
-  vector_shape_fn<dim>::symmetric_gradient()
+  shape_functions<dim>::vector::symmetric_gradient()
   {
-    return ShapeFn<1, dim, dealii::SymmetricTensor<2, dim>>{&view_type::symmetric_gradient};
+    typename ShapeFn<1, dim, dealii::SymmetricTensor<2, dim>>::method_type
+      method = &view_type::symmetric_gradient;
+    return ShapeFn<1, dim, dealii::SymmetricTensor<2, dim>>{method};
   }
 
 
   template <int dim>
-  ShapeFn<1, dim, double>
-  vector_shape_fn<dim>::divergence()
+  ShapeFn<1, dim, double> shape_functions<dim>::vector::divergence()
   {
     return ShapeFn<1, dim, double>{&view_type::divergence};
   }
