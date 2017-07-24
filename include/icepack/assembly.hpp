@@ -74,6 +74,8 @@ namespace icepack
 
   /**
    * @brief Helper struct for evaluating shape functions
+   *
+   * @ingroup assembly
    */
   template <int rank, int dim, typename T>
   struct ShapeFn
@@ -105,7 +107,7 @@ namespace icepack
   struct shape_functions
   {
     /**
-     * Make proxy objects for evaluating scalar shape functions
+     * @brief Make proxy objects for evaluating scalar shape functions
      */
     struct scalar
     {
@@ -117,7 +119,7 @@ namespace icepack
     };
 
     /**
-     * Make proxy objects for evaluating vector shape functions
+     * @brief Make proxy objects for evaluating vector shape functions
      */
     struct vector
     {
@@ -458,6 +460,12 @@ namespace icepack
   }
 
 
+  /**
+   * Evaluate a linear form of several fields given the kernel, some assembly
+   * data, and the right shape function to evaluate
+   *
+   * @ingroup assembly
+   */
   template <typename Functional, int rank, int dim, typename T, typename... Args>
   FieldType<rank, dim, dual> integrate(
     Functional&& F,
@@ -503,6 +511,12 @@ namespace icepack
   }
 
 
+  /**
+   * Evaluate a bilinear form of several fields given the kernel, some assembly
+   * data, and the pairs of shape functions to evaluate
+   *
+   * @ingroup assembly
+   */
   template <typename Functional, int rank, int dim, typename T1, typename T2, typename... Args>
   dealii::SparseMatrix<double> integrate(
     Functional&& F,
