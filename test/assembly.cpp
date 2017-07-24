@@ -34,8 +34,8 @@ int main()
     const auto shape = icepack::shape_functions<2>::scalar::value();
     const auto shape_grad = icepack::shape_functions<2>::scalar::gradient();
 
-    std::cout << typeid(shape.method).name() << "\n"
-              << typeid(shape_grad.method).name() << "\n";
+    std::cout << typeid(shape.eval).name() << "\n"
+              << typeid(shape_grad.eval).name() << "\n";
   }
 
 

@@ -77,7 +77,7 @@ namespace icepack
    *
    * @ingroup assembly
    */
-  template <int rank, int dim, typename T>
+  template <int rank, int dim, typename T, typename Eval>
   struct ShapeFn
   {
     using view_type = typename FieldType<rank, dim>::view_type;
@@ -92,50 +92,8 @@ namespace icepack
       const unsigned int quadrature_point
     ) const;
 
-    using method_type =
-      T (view_type::*)(const unsigned int, const unsigned int) const;
-    const method_type method;
+    const Eval eval;
   };
-
-
-  /**
-   * @brief Makes proxy objects for evaluating shape functions
-   *
-   * @ingroup assembly
-   */
-  template <int dim>
-  struct shape_functions
-  {
-    /**
-     * @brief Make proxy objects for evaluating scalar shape functions
-     */
-    struct scalar
-    {
-      using view_type = typename Field<dim>::view_type;
-
-      static ShapeFn<0, dim, double> value();
-
-      static ShapeFn<0, dim, dealii::Tensor<1, dim>> gradient();
-    };
-
-    /**
-     * @brief Make proxy objects for evaluating vector shape functions
-     */
-    struct vector
-    {
-      using view_type = typename VectorField<dim>::view_type;
-
-      static ShapeFn<1, dim, dealii::Tensor<1, dim>> value();
-
-      static ShapeFn<1, dim, dealii::Tensor<2, dim>> gradient();
-
-      static ShapeFn<1, dim, dealii::SymmetricTensor<2, dim>>
-      symmetric_gradient();
-
-      static ShapeFn<1, dim, double> divergence();
-    };
-  };
-
 
 
   /**
@@ -409,6 +367,46 @@ namespace icepack
   };
 
 
+
+  /**
+   * @brief Makes proxy objects for evaluating shape functions
+   *
+   * @ingroup assembly
+   */
+  template <int dim>
+  struct shape_functions
+  {
+    /**
+     * @brief Make proxy objects for evaluating scalar shape functions
+     */
+    struct scalar
+    {
+      using view_type = typename Field<dim>::view_type;
+
+      static auto value();
+
+      static auto gradient();
+    };
+
+    /**
+     * @brief Make proxy objects for evaluating vector shape functions
+     */
+    struct vector
+    {
+      using view_type = typename VectorField<dim>::view_type;
+
+      static auto value();
+
+      static auto gradient();
+
+      static auto symmetric_gradient();
+
+      static auto divergence();
+    };
+  };
+
+
+
   namespace internal
   {
     template <typename F, typename Tuple, size_t... I>
@@ -466,11 +464,13 @@ namespace icepack
    *
    * @ingroup assembly
    */
-  template <typename Functional, int rank, int dim, typename T, typename... Args>
+  template <typename Functional,
+            int rank, int dim, typename T, typename Eval,
+            typename... Args>
   FieldType<rank, dim, dual> integrate(
     Functional&& F,
     const dealii::ConstraintMatrix& constraints,
-    const ShapeFn<rank, dim, T>& shape_fn,
+    const ShapeFn<rank, dim, T, Eval>& shape_fn,
     AssemblyData<dim, Args...>& assembly_data
   )
   {
@@ -517,12 +517,16 @@ namespace icepack
    *
    * @ingroup assembly
    */
-  template <typename Functional, int rank, int dim, typename T1, typename T2, typename... Args>
+  template <typename Functional,
+           int rank, int dim,
+           typename T1, typename Eval1,
+           typename T2, typename Eval2,
+           typename... Args>
   dealii::SparseMatrix<double> integrate(
     Functional&& F,
     const dealii::ConstraintMatrix& constraints,
-    const ShapeFn<rank, dim, T1>& shape_fn1,
-    const ShapeFn<rank, dim, T2>& shape_fn2,
+    const ShapeFn<rank, dim, T1, Eval1>& shape_fn1,
+    const ShapeFn<rank, dim, T2, Eval2>& shape_fn2,
     AssemblyData<dim, Args...>& assembly_data
   )
   {
@@ -674,61 +678,93 @@ namespace icepack
    * Implementations of `ShapeFn` methods
    * ------------------------------------ */
 
-  template <int rank, int dim, typename T>
-  T ShapeFn<rank, dim, T>::operator()(
+  template <int rank, int dim, typename T, typename Eval>
+  T ShapeFn<rank, dim, T, Eval>::operator()(
     const view_type& view,
     const unsigned int dof_index,
     const unsigned int quadrature_point
   ) const
   {
-    return (view.*method)(dof_index, quadrature_point);
+    return eval(view, dof_index, quadrature_point);
   }
 
 
   template <int dim>
-  ShapeFn<0, dim, double> shape_functions<dim>::scalar::value()
+  auto shape_functions<dim>::scalar::value()
   {
-    return ShapeFn<0, dim, double>{&view_type::value};
+    const auto eval =
+    [](const view_type& view, const unsigned int i, const unsigned int q)
+    {
+      return view.value(i, q);
+    };
+
+    return ShapeFn<0, dim, double, decltype(eval)>{eval};
   }
 
 
   template <int dim>
-  ShapeFn<0, dim, dealii::Tensor<1, dim>>
-  shape_functions<dim>::scalar::gradient()
+  auto shape_functions<dim>::scalar::gradient()
   {
-    return ShapeFn<0, dim, dealii::Tensor<1, dim>>{&view_type::gradient};
+    const auto eval =
+    [](const view_type& view, const unsigned int i, const unsigned int q)
+    {
+      return view.gradient(i, q);
+    };
+
+    return ShapeFn<0, dim, dealii::Tensor<1, dim>, decltype(eval)>{eval};
   }
 
 
   template <int dim>
-  ShapeFn<1, dim, dealii::Tensor<1, dim>> shape_functions<dim>::vector::value()
+  auto shape_functions<dim>::vector::value()
   {
-    return ShapeFn<1, dim, dealii::Tensor<1, dim>>{&view_type::value};
+    const auto eval =
+    [](const view_type& view, const unsigned int i, const unsigned int q)
+    {
+      return view.value(i, q);
+    };
+
+    return ShapeFn<1, dim, dealii::Tensor<1, dim>, decltype(eval)>{eval};
   }
 
 
   template <int dim>
-  ShapeFn<1, dim, dealii::Tensor<2, dim>>
-  shape_functions<dim>::vector::gradient()
+  auto shape_functions<dim>::vector::gradient()
   {
-    return ShapeFn<1, dim, dealii::Tensor<2, dim>>{&view_type::gradient};
+    const auto eval =
+    [](const view_type& view, const unsigned int i, const unsigned int q)
+    {
+      return view.gradient(i, q);
+    };
+
+    return ShapeFn<1, dim, dealii::Tensor<2, dim>, decltype(eval)>{eval};
   }
 
 
   template <int dim>
-  ShapeFn<1, dim, dealii::SymmetricTensor<2, dim>>
-  shape_functions<dim>::vector::symmetric_gradient()
+  auto shape_functions<dim>::vector::symmetric_gradient()
   {
-    typename ShapeFn<1, dim, dealii::SymmetricTensor<2, dim>>::method_type
-      method = &view_type::symmetric_gradient;
-    return ShapeFn<1, dim, dealii::SymmetricTensor<2, dim>>{method};
+    const auto eval =
+    [](const view_type& view, const unsigned int i, const unsigned int q)
+    {
+      return view.symmetric_gradient(i, q);
+    };
+
+    return
+      ShapeFn<1, dim, dealii::SymmetricTensor<2, dim>, decltype(eval)>{eval};
   }
 
 
   template <int dim>
-  ShapeFn<1, dim, double> shape_functions<dim>::vector::divergence()
+  auto shape_functions<dim>::vector::divergence()
   {
-    return ShapeFn<1, dim, double>{&view_type::divergence};
+    const auto eval =
+    [](const view_type& view, const unsigned int i, const unsigned int q)
+    {
+      return view.divergence(i, q);
+    };
+
+    return ShapeFn<1, dim, double, decltype(eval)>{eval};
   }
 
 
