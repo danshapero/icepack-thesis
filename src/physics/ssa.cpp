@@ -138,7 +138,7 @@ namespace icepack
         return n / (n + 1) * H * (M * eps);
       };
 
-    return integrate(f, get_discretization(h, theta, u), assembly_data);
+    return integrate(f, assembly_data);
   }
 
 
@@ -167,8 +167,7 @@ namespace icepack
     };
 
     const auto eps_v = vector_shape_fn<2>::symmetric_gradient();
-    const auto& dsc = get_discretization(h, theta, u);
-    return assemble_dual_field(F, dsc, constraints, eps_v, assembly_data);
+    return integrate(F, constraints, eps_v, assembly_data);
   }
 
 
@@ -286,7 +285,7 @@ namespace icepack
         return -0.5 * Rho * gravity * H * H * div_U;
       };
 
-    return integrate(f, get_discretization(h, u), assembly_data);
+    return integrate(f, assembly_data);
   }
 
 

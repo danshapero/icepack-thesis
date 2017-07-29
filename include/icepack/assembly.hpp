@@ -403,11 +403,11 @@ namespace icepack
   template <typename Functional, int dim, typename... Args>
   double integrate(
     Functional&& f,
-    const Discretization<dim>& discretization,
     AssemblyData<dim, Args...>& assembly_data
   )
   {
-    const dealii::QGauss<dim>& quad = discretization.quad();
+    const Discretization<dim>& discretization = assembly_data.discretization();
+    const dealii::QGauss<dim> quad = discretization.quad();
     const size_t n_q_points = quad.size();
 
     double integral = 0.0;
@@ -428,14 +428,14 @@ namespace icepack
 
 
   template <typename Functional, int rank, int dim, typename T, typename... Args>
-  FieldType<rank, dim, dual> assemble_dual_field(
+  FieldType<rank, dim, dual> integrate(
     Functional&& F,
-    const Discretization<dim>& discretization,
     const dealii::ConstraintMatrix& constraints,
     const ShapeFn<rank, dim, T>& shape_fn,
     AssemblyData<dim, Args...>& assembly_data
   )
   {
+    const Discretization<dim>& discretization = assembly_data.discretization();
     const dealii::QGauss<dim> quad = discretization.quad();
 
     const size_t n_dofs = discretization(rank).finite_element().dofs_per_cell;
