@@ -409,18 +409,21 @@ namespace icepack
 
   namespace internal
   {
-    template <typename F, typename Tuple, size_t... I>
-    decltype(auto) apply_impl(F&& f, Tuple&& tuple, std::index_sequence<I...>)
+    template <typename F, typename Tuple, size_t... I, typename... Args>
+    decltype(auto)
+    apply_impl(F&& f, Tuple&& tuple, std::index_sequence<I...>, Args&&... args)
     {
-      return std::forward<F>(f)(std::get<I>(std::forward<Tuple>(tuple))...);
+      return std::forward<F>(f)(std::get<I>(std::forward<Tuple>(tuple))...,
+                                std::forward<Args>(args)...);
     }
 
-    template <typename F, typename Tuple>
-    decltype(auto) apply(F&& f, Tuple&& tuple)
+    template <typename F, typename Tuple, typename... Args>
+    decltype(auto) apply(F&& f, Tuple&& tuple, Args&&... args)
     {
       constexpr size_t N =
         std::tuple_size<typename std::remove_reference<Tuple>::type>::value;
-      return apply_impl(f, tuple, std::make_index_sequence<N>());
+      const auto seq = std::make_index_sequence<N>();
+      return apply_impl(f, tuple, seq, std::forward<Args>(args)...);
     }
   }
 
@@ -449,8 +452,7 @@ namespace icepack
       for (size_t q = 0; q < n_q_points; ++q)
       {
         const double dx = assembly_data.JxW(q);
-        const double cell_value = internal::apply(f, assembly_data.values(q));
-        integral += cell_value * dx;
+        integral += internal::apply(f, assembly_data.values(q))* dx;
       }
     }
 
@@ -497,9 +499,7 @@ namespace icepack
         for (unsigned int i = 0; i < n_dofs; ++i)
         {
           const T phi_i = shape_fn(view, i, q);
-          const double cell_value =
-            internal::apply(F, std::tuple_cat(values, std::make_tuple(phi_i)));
-          cell_f(i) += cell_value * dx;
+          cell_f(i) += internal::apply(F, values, phi_i) * dx;
         }
       }
 
@@ -556,9 +556,7 @@ namespace icepack
           for (unsigned int j = 0; j < n_dofs; ++j)
           {
             const T2 phi_j = shape_fn2(view, j, q);
-            const double cell_value =
-              internal::apply(F, std::tuple_cat(values, std::make_tuple(phi_i, phi_j)));
-            cell_m(i, j) += cell_value * dx;
+            cell_m(i, j) += internal::apply(F, values, phi_i, phi_j) * dx;
           }
         }
       }
