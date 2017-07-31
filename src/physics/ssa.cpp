@@ -124,21 +124,21 @@ namespace icepack
     const VectorField<2>& u
   ) const
   {
-    auto assembly_data = make_assembly_data<2>(
+    const auto assembly_data = make_assembly_data<2>(
       evaluate::function(h),
       evaluate::function(theta),
       evaluate::symmetric_gradient(u)
     );
 
     const double n = membrane_stress.rheology.n;
-    const auto Functional =
+    const auto F =
     [&](const double H, const double T, const SymmetricTensor<2, 2> eps)
     {
       const SymmetricTensor<2, 2> M = membrane_stress(T, eps);
       return n / (n + 1) * H * (M * eps);
     };
 
-    return integrate(Functional, assembly_data);
+    return integrate(F, assembly_data);
   }
 
 
@@ -149,26 +149,27 @@ namespace icepack
     const dealii::ConstraintMatrix& constraints
   ) const
   {
-    auto assembly_data = make_assembly_data<2>(
+    const auto assembly_data = make_assembly_data<2>(
       evaluate::function(h),
       evaluate::function(theta),
       evaluate::symmetric_gradient(u)
     );
 
-    const auto Functional =
-    [&](
-      const double H,
-      const double T,
-      const SymmetricTensor<2, 2> eps_u,
-      const SymmetricTensor<2, 2> eps_v
-    )
+    const auto P =
+    [&](const double H, const double T, const SymmetricTensor<2, 2> eps)
     {
-      const SymmetricTensor<2, 2> M = membrane_stress(T, eps_u);
-      return H * (M * eps_v);
+      const SymmetricTensor<2, 2> M = H * membrane_stress(T, eps);
+      return std::make_tuple(M);
+    };
+
+    const auto F =
+    [&](const SymmetricTensor<2, 2> M, const SymmetricTensor<2, 2> eps_v)
+    {
+      return (M * eps_v);
     };
 
     const auto eps_v = shape_functions<2>::vector::symmetric_gradient();
-    return integrate(Functional, constraints, eps_v, assembly_data);
+    return integrate(F, P, assembly_data, eps_v, constraints);
   }
 
 
@@ -179,14 +180,14 @@ namespace icepack
     const VectorField<2>& v
   ) const
   {
-    auto assembly_data = make_assembly_data<2>(
+    const auto assembly_data = make_assembly_data<2>(
       evaluate::function(h),
       evaluate::function(theta),
       evaluate::symmetric_gradient(u),
       evaluate::symmetric_gradient(v)
     );
 
-    const auto Functional =
+    const auto F =
     [&](
       const double H,
       const double T,
@@ -198,7 +199,7 @@ namespace icepack
       return H * (M * eps_v);
     };
 
-    return integrate(Functional, assembly_data);
+    return integrate(F, assembly_data);
   }
 
 
@@ -209,28 +210,32 @@ namespace icepack
     const dealii::ConstraintMatrix& constraints
   ) const
   {
-    auto assembly_data = make_assembly_data<2>(
+    const auto assembly_data = make_assembly_data<2>(
       evaluate::function(h),
       evaluate::function(theta),
       evaluate::symmetric_gradient(u)
     );
 
-    const auto Functional =
+    const auto P =
+    [&](const double H, const double T, const SymmetricTensor<2, 2> eps)
+    {
+      const SymmetricTensor<4, 2> K = membrane_stress.du(T, eps);
+      return std::make_tuple(H * K);
+    };
+
+    const auto F =
     [&](
-      const double H,
-      const double T,
-      const SymmetricTensor<2, 2> eps_u,
+      const SymmetricTensor<4, 2> K,
       const SymmetricTensor<2, 2> eps_v,
       const SymmetricTensor<2, 2> eps_w
     )
     {
-      const SymmetricTensor<4, 2> K = membrane_stress.du(T, eps_u);
-      return H * (eps_v * K * eps_w);
+      return eps_v * K * eps_w;
     };
 
     const auto eps_v = shape_functions<2>::vector::symmetric_gradient();
     const auto eps_w = shape_functions<2>::vector::symmetric_gradient();
-    return integrate(Functional, constraints, eps_v, eps_w, assembly_data);
+    return integrate(F, P, assembly_data, eps_v, eps_w, constraints);
   }
 
 
@@ -239,19 +244,19 @@ namespace icepack
 
   double Gravity::action(const Field<2>& h, const VectorField<2>& u) const
   {
-    auto assembly_data = make_assembly_data<2>(
+    const auto assembly_data = make_assembly_data<2>(
       evaluate::function(h),
       evaluate::divergence(u)
     );
 
     using namespace icepack::constants;
     const double Rho = rho_ice * (1 - rho_ice / rho_water);
-    const auto Functional = [&](const double H, const double div_U)
+    const auto F = [&](const double H, const double div_U)
     {
       return -0.5 * Rho * gravity * H * H * div_U;
     };
 
-    return integrate(Functional, assembly_data);
+    return integrate(F, assembly_data);
   }
 
 
@@ -260,17 +265,23 @@ namespace icepack
     const dealii::ConstraintMatrix& constraints
   ) const
   {
-    auto assembly_data = make_assembly_data<2>(evaluate::function(h));
+    const auto assembly_data = make_assembly_data<2>(evaluate::function(h));
 
     using namespace icepack::constants;
     const double Rho = rho_ice * (1 - rho_ice / rho_water);
-    const auto Functional = [&](const double H, const double div_v)
+
+    const auto P = [&](const double H)
     {
-      return -0.5 * Rho * gravity * H * H * div_v;
+      return std::make_tuple(0.5 * Rho * gravity * H * H);
+    };
+
+    const auto F = [&](const double W, const double div_v)
+    {
+      return -W * div_v;
     };
 
     const auto div_v = shape_functions<2>::vector::divergence();
-    return integrate(Functional, constraints, div_v, assembly_data);
+    return integrate(F, P, assembly_data, div_v, constraints);
   }
 
 

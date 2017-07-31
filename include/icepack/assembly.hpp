@@ -436,10 +436,11 @@ namespace icepack
    */
   template <typename Functional, int dim, typename... Args>
   double integrate(
-    Functional&& f,
-    AssemblyData<dim, Args...>& assembly_data
+    Functional&& F,
+    const AssemblyData<dim, Args...>& assembly_data_
   )
   {
+    AssemblyData<dim, Args...> assembly_data(assembly_data_);
     const Discretization<dim>& discretization = assembly_data.discretization();
     const dealii::QGauss<dim> quad = discretization.quad();
     const size_t n_q_points = quad.size();
@@ -452,7 +453,7 @@ namespace icepack
       for (size_t q = 0; q < n_q_points; ++q)
       {
         const double dx = assembly_data.JxW(q);
-        integral += internal::apply(f, assembly_data.values(q))* dx;
+        integral += internal::apply(F, assembly_data.values(q))* dx;
       }
     }
 
@@ -466,16 +467,18 @@ namespace icepack
    *
    * @ingroup assembly
    */
-  template <typename Functional,
+  template <typename Functional, typename Parameterization,
             int rank, int dim, typename T, typename Eval,
             typename... Args>
   FieldType<rank, dim, dual> integrate(
     Functional&& F,
-    const dealii::ConstraintMatrix& constraints,
+    Parameterization&& P,
+    const AssemblyData<dim, Args...>& assembly_data_,
     const ShapeFn<rank, dim, T, Eval>& shape_fn,
-    AssemblyData<dim, Args...>& assembly_data
+    const dealii::ConstraintMatrix& constraints
   )
   {
+    AssemblyData<dim, Args...> assembly_data(assembly_data_);
     const Discretization<dim>& discretization = assembly_data.discretization();
     const dealii::QGauss<dim> quad = discretization.quad();
 
@@ -494,7 +497,7 @@ namespace icepack
       for (size_t q = 0; q < quad.size(); ++q)
       {
         const double dx = assembly_data.JxW(q);
-        const auto values = assembly_data.values(q);
+        const auto values = internal::apply(P, assembly_data.values(q));
 
         for (unsigned int i = 0; i < n_dofs; ++i)
         {
@@ -517,19 +520,21 @@ namespace icepack
    *
    * @ingroup assembly
    */
-  template <typename Functional,
+  template <typename Functional, typename Parameterization,
            int rank, int dim,
            typename T1, typename Eval1,
            typename T2, typename Eval2,
            typename... Args>
   dealii::SparseMatrix<double> integrate(
     Functional&& F,
-    const dealii::ConstraintMatrix& constraints,
+    Parameterization&& P,
+    const AssemblyData<dim, Args...>& assembly_data_,
     const ShapeFn<rank, dim, T1, Eval1>& shape_fn1,
     const ShapeFn<rank, dim, T2, Eval2>& shape_fn2,
-    AssemblyData<dim, Args...>& assembly_data
+    const dealii::ConstraintMatrix& constraints
   )
   {
+    AssemblyData<dim, Args...> assembly_data(assembly_data_);
     const Discretization<dim>& discretization = assembly_data.discretization();
     const dealii::QGauss<dim> quad = discretization.quad();
 
@@ -548,7 +553,7 @@ namespace icepack
       for (size_t q = 0; q < quad.size(); ++q)
       {
         const double dx = assembly_data.JxW(q);
-        const auto values = assembly_data.values(q);
+        const auto values = internal::apply(P, assembly_data.values(q));
 
         for (unsigned int i = 0; i < n_dofs; ++i)
         {
