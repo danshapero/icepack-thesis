@@ -1,5 +1,5 @@
 
-#include <icepack/physics/ssa.hpp>
+#include <icepack/physics/ice_shelf.hpp>
 #include <icepack/physics/constants.hpp>
 #include <icepack/numerics/optimization.hpp>
 #include <icepack/assembly.hpp>

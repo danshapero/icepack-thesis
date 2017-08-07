@@ -1,6 +1,6 @@
 
-#ifndef ICEPACK_SSA_HPP
-#define ICEPACK_SSA_HPP
+#ifndef ICEPACK_ICE_SHELF_HPP
+#define ICEPACK_ICE_SHELF_HPP
 
 #include <icepack/physics/viscosity.hpp>
 #include <icepack/field.hpp>

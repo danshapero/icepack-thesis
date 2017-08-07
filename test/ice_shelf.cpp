@@ -1,12 +1,11 @@
 
+#include <icepack/physics/ice_shelf.hpp>
 #include <icepack/physics/constants.hpp>
-#include <icepack/physics/ssa.hpp>
 #include "testing.hpp"
 
 using dealii::Point;
 using dealii::Tensor;
 using dealii::SymmetricTensor;
-
 
 int main(int argc, char ** argv)
 {
