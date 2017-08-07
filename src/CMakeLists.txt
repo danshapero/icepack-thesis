@@ -5,7 +5,9 @@ set(SOURCES
   discretization.cpp
   field.cpp
   physics/viscosity.cpp
+  physics/friction.cpp
   physics/ice_shelf.cpp
+  physics/ice_stream.cpp
   physics/mass_transport.cpp
 )
 

@@ -34,8 +34,8 @@ int main(int argc, char ** argv)
       CHECK(icepack::testing::is_decreasing(errors));
     };
 
-    // Check that the derivative of the rheology is implemented right both above
-    // and below the transition temp of 263.15K.
+    // Check that the derivative of the rheology is implemented right both
+    // above and below the transition temp of 263.15K.
     test(253.0, 5.0);
     test(270.0, -5.0);
   }

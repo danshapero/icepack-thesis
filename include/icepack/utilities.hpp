@@ -3,6 +3,7 @@
 #define ICEPACK_UTILITIES_HPP
 
 #include <deal.II/fe/fe_update_flags.h>
+#include <set>
 
 namespace icepack
 {
@@ -50,6 +51,30 @@ namespace icepack
   {
     return at_boundary(it, face_number) and
       (it->face(face_number)->boundary_id() == boundary_id);
+  }
+
+
+  template <typename iterator>
+  bool at_boundary(
+    const iterator& it,
+    const unsigned int face_number,
+    const std::set<dealii::types::boundary_id>& ids
+  )
+  {
+    return at_boundary(it, face_number) and
+      ids.count(it->face(face_number)->boundary_id());
+  }
+
+
+  template <typename iterator>
+  bool at_boundary_complement(
+    const iterator& it,
+    const unsigned int face_number,
+    const std::set<dealii::types::boundary_id>& ids
+  )
+  {
+    return at_boundary(it, face_number) and
+      (not ids.count(it->face(face_number)->boundary_id()));
   }
 
 }

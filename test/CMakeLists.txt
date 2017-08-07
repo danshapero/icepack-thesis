@@ -31,6 +31,7 @@ icepack_tests(
   optimization
   assembly
   viscosity
+  friction
 )
 
 # Build a program and test it with several command line arguments to indicate
@@ -47,6 +48,7 @@ endfunction(icepack_grid_tests)
 icepack_grid_tests(
   field
   ice_shelf
+  ice_stream
   mass_transport
 )
 
