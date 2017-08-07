@@ -50,7 +50,7 @@ namespace icepack
      * Compute the membrane stress as a function of the local ice temperature
      * and strain rate
      */
-    virtual dealii::SymmetricTensor<2, 2> operator()(
+    dealii::SymmetricTensor<2, 2> operator()(
       const double theta,
       const dealii::SymmetricTensor<2, 2> eps
     ) const;
@@ -62,7 +62,7 @@ namespace icepack
      * This method is used in solving inverse problems, where we need to
      * compute the derivative of the model physics with respect to temperature.
      */
-    virtual dealii::SymmetricTensor<2, 2> dtheta(
+    dealii::SymmetricTensor<2, 2> dtheta(
       const double theta,
       const dealii::SymmetricTensor<2, 2> eps
     ) const;
@@ -74,7 +74,7 @@ namespace icepack
      * This method is used in computing the linearization of the forward model
      * physics, which we need to apply Newton's method.
      */
-    virtual dealii::SymmetricTensor<4, 2> du(
+    dealii::SymmetricTensor<4, 2> du(
       const double theta,
       const dealii::SymmetricTensor<2, 2> eps
     ) const;
@@ -119,7 +119,7 @@ namespace icepack
      * Evaluate the viscous power dissipation. The action for the shallow shelf
      * approximation is the sum of the viscous and gravitational power.
      */
-    virtual double action(
+    double action(
       const Field<2>& thickness,
       const Field<2>& theta,
       const VectorField<2>& velocity
@@ -129,7 +129,7 @@ namespace icepack
      * Evaluate the derivative of the viscous power dissipation; this is the
      * membrane stress field.
      */
-    virtual DualVectorField<2> derivative(
+    DualVectorField<2> derivative(
       const Field<2>& thickness,
       const Field<2>& theta,
       const VectorField<2>& velocity,
@@ -140,7 +140,7 @@ namespace icepack
      * Evaluate the directional derivative of the viscous power dissipation
      * along some velocity field.
      */
-    virtual double derivative(
+    double derivative(
       const Field<2>& thickness,
       const Field<2>& theta,
       const VectorField<2>& velocity,
@@ -151,7 +151,7 @@ namespace icepack
      * Evaluate the second derivative of the viscous power dissipation with
      * respect to the velocity.
      */
-    virtual dealii::SparseMatrix<double> hessian(
+    dealii::SparseMatrix<double> hessian(
       const Field<2>& thickness,
       const Field<2>& theta,
       const VectorField<2>& velocity,

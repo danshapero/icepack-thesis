@@ -19,20 +19,17 @@ namespace icepack
   {
     Gravity();
 
-    virtual double
-    action(
+    double action(
       const Field<2>& thickness,
       const VectorField<2>& velocity
     ) const;
 
-    virtual DualVectorField<2>
-    derivative(
+    DualVectorField<2> derivative(
       const Field<2>& thickness,
       const dealii::ConstraintMatrix& constraints = dealii::ConstraintMatrix()
     ) const;
 
-    virtual double
-    derivative(
+    double derivative(
       const Field<2>& thickness,
       const VectorField<2>& direction
     ) const;
