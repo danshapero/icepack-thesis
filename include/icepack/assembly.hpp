@@ -492,8 +492,9 @@ namespace icepack
   const Discretization<dim>&
   AssemblyDataBase<Derived, dim, Args...>::discretization() const
   {
-    const auto index_sequence = std::index_sequence_for<Args...>();
-    return internal::assembly_data_discretization_helper<dim>(evaluators_, index_sequence);
+    const auto seq = std::index_sequence_for<Args...>();
+    return
+      internal::assembly_data_discretization_helper<dim>(evaluators_, seq);
   }
 
 

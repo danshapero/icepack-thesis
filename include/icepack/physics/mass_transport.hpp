@@ -7,8 +7,8 @@
 namespace icepack
 {
   /**
-   * Return the timestep `dt` that gives a Courant number of a given value for
-   * some velocity field.
+   * @brief Return the timestep `dt` that gives a Courant number of a given
+   * value for some velocity field.
    *
    * The Courant number for the advection equation with a velocity \f$u\f$,
    * mesh spacing \f$\delta x\f$, and timestep \f$\delta t\f$ is the quantity

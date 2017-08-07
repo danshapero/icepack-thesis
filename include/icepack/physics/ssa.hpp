@@ -29,8 +29,8 @@ namespace icepack
   struct ViscousRheology
   {
     /**
-     * Create a rheology object for a given value of the Glen flow law exponent,
-     * which defaults to 3.0.
+     * Create a rheology object for a given value of the Glen flow law
+     * exponent, which defaults to 3.0.
      */
     ViscousRheology(const double n = 3.0);
 
@@ -92,9 +92,9 @@ namespace icepack
 
     /**
      * Constructor, takes in an object for computing the rheology. You may want
-     * to change the rheology object to use a different parameterization for the
-     * rheology as a function of some variable other than temperature, e.g. a
-     * combination of temperature and damage, inverse temperature, etc.
+     * to change the rheology object to use a different parameterization for
+     * the rheology as a function of some variable other than temperature, e.g.
+     * a combination of temperature and damage, inverse temperature, etc.
      */
     Viscosity(const ViscousRheology& rheology);
 
