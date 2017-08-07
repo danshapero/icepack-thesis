@@ -31,6 +31,7 @@ icepack_tests(
   discretization
   optimization
   assembly
+  viscosity
 )
 
 icepack_exec(field)

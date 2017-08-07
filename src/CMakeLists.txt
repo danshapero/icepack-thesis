@@ -4,6 +4,7 @@ set(SOURCES
   grid_data.cpp
   discretization.cpp
   field.cpp
+  physics/viscosity.cpp
   physics/ssa.cpp
   physics/mass_transport.cpp
 )

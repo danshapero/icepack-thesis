@@ -23,6 +23,14 @@ namespace icepack
     }
 
 
+    void print_errors(const std::vector<double>& errors)
+    {
+      for (const auto error: errors)
+        std::cout << error << " ";
+      std::cout << "\n";
+    }
+
+
     dealii::Triangulation<2>
     example_mesh(unsigned int num_levels, bool refined)
     {

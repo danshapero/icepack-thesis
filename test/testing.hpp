@@ -19,6 +19,10 @@ namespace icepack
     std::set<std::string> get_cmdline_args(int argc, char ** argv);
 
 
+    /// Print out a vector of errors, separated by spaces
+    void print_errors(const std::vector<double>& errors);
+
+
     /// Return a mesh of the unit square with a given number of refinement
     /// levels. If the optional argument `refined` is true, then the right half
     /// of the mesh will be refined; this is for testing functions on non-
