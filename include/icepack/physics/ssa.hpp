@@ -49,9 +49,6 @@ namespace icepack
   };
 
 
-  using dealii::SymmetricTensor;
-
-
   /**
    * @brief Computes the stress in the 2D plane as a function of strain rate
    *
@@ -61,19 +58,19 @@ namespace icepack
   {
     MembraneStress(const ViscousRheology& rheology);
 
-    virtual SymmetricTensor<2, 2> operator()(
+    virtual dealii::SymmetricTensor<2, 2> operator()(
       const double theta,
-      const SymmetricTensor<2, 2> eps
+      const dealii::SymmetricTensor<2, 2> eps
     ) const;
 
-    virtual SymmetricTensor<2, 2> dtheta(
+    virtual dealii::SymmetricTensor<2, 2> dtheta(
       const double theta,
-      const SymmetricTensor<2, 2> eps
+      const dealii::SymmetricTensor<2, 2> eps
     ) const;
 
-    virtual SymmetricTensor<4, 2> du(
+    virtual dealii::SymmetricTensor<4, 2> du(
       const double theta,
-      const SymmetricTensor<2, 2> eps
+      const dealii::SymmetricTensor<2, 2> eps
     ) const;
 
     const ViscousRheology rheology;
