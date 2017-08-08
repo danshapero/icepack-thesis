@@ -1,7 +1,6 @@
 
 #include <icepack/physics/ice_shelf.hpp>
 #include <icepack/physics/constants.hpp>
-#include <icepack/numerics/optimization.hpp>
 #include <icepack/assembly.hpp>
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/lac/sparse_direct.h>
@@ -10,10 +9,13 @@ namespace icepack
 {
   using namespace constants;
 
-  Gravity::Gravity()
+  GravityFloating::GravityFloating()
   {}
 
-  double Gravity::action(const Field<2>& h, const VectorField<2>& u) const
+  double GravityFloating::action(
+    const Field<2>& h,
+    const VectorField<2>& u
+  ) const
   {
     const auto& discretization = get_discretization(h, u);
     double P = 0.0;
@@ -24,9 +26,7 @@ namespace icepack
       evaluate::divergence(u)
     );
 
-    using namespace icepack::constants;
     const double Rho = rho_ice * (1 - rho_ice / rho_water);
-
     for (const auto& cell: discretization)
     {
       assembly_data.reinit(cell);
@@ -45,7 +45,7 @@ namespace icepack
   }
 
 
-  DualVectorField<2> Gravity::derivative(
+  DualVectorField<2> GravityFloating::derivative(
     const Field<2>& h,
     const dealii::ConstraintMatrix& constraints
   ) const
@@ -61,9 +61,7 @@ namespace icepack
     dealii::Vector<double> cell_derivative(dofs_per_cell);
     std::vector<dealii::types::global_dof_index> local_dof_ids(dofs_per_cell);
 
-    using namespace icepack::constants;
     const double Rho = rho_ice * (1 - rho_ice / rho_water);
-
     for (const auto& cell: discretization)
     {
       cell_derivative = 0;
@@ -93,7 +91,10 @@ namespace icepack
   }
 
 
-  double Gravity::derivative(const Field<2>& h, const VectorField<2>& v) const
+  double GravityFloating::derivative(
+    const Field<2>& h,
+    const VectorField<2>& v
+  ) const
   {
     // The gravitational stress action is linear in the velocity, so the
     // directional derivative is just itself!

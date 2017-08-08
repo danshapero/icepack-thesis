@@ -95,7 +95,7 @@ int main(int argc, char ** argv)
   }
 
 
-  const icepack::Gravity gravity;
+  const icepack::GravityFloating gravity;
 
   TEST_SUITE("gravitational driving stress action functional")
   {

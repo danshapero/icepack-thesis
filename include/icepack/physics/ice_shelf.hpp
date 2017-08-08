@@ -3,21 +3,19 @@
 #define ICEPACK_ICE_SHELF_HPP
 
 #include <icepack/physics/viscosity.hpp>
-#include <icepack/field.hpp>
 #include <icepack/numerics/optimization.hpp>
 
 namespace icepack
 {
-
   /**
    * @brief Computes the gravitational power dissipation and stress for shallow
    * shelf flows
    *
    * @ingroup physics
    */
-  struct Gravity
+  struct GravityFloating
   {
-    Gravity();
+    GravityFloating();
 
     double action(
       const Field<2>& thickness,
@@ -71,7 +69,7 @@ namespace icepack
 
     const std::set<dealii::types::boundary_id> dirichlet_boundary_ids;
 
-    const Gravity gravity;
+    const GravityFloating gravity;
     const Viscosity viscosity;
     const double tolerance;
   };
