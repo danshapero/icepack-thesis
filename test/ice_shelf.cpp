@@ -99,7 +99,7 @@ int main(int argc, char ** argv)
 
   TEST_SUITE("gravitational driving stress action functional")
   {
-    const double exact_gravity_power = -0.5 * power;
+    const double exact_gravity_power = 0.5 * power;
     const double gravity_power = gravity.action(h, u);
 
     CHECK_REAL(exact_gravity_power, gravity_power, tolerance * area);

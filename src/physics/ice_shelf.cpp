@@ -37,7 +37,7 @@ namespace icepack
         const auto values = assembly_data.values(q);
         const double H = std::get<0>(values);
         const double div_U = std::get<1>(values);
-        P -= 0.5 * Rho * gravity * H * H * div_U * dx;
+        P += 0.5 * Rho * gravity * H * H * div_U * dx;
       }
     }
 
@@ -71,7 +71,7 @@ namespace icepack
       {
         const double dx = assembly_data.JxW(q);
         const double H = std::get<0>(assembly_data.values(q));
-        const double Tau = -0.5 * Rho * gravity * H * H;
+        const double Tau = 0.5 * Rho * gravity * H * H;
 
         for (unsigned int i = 0; i < dofs_per_cell; ++i)
         {
@@ -155,13 +155,13 @@ namespace icepack
     const auto F =
       [&](const VectorField<2>& v) -> double
       {
-        return gravity.action(h, v) + viscosity.action(h, theta, v);
+        return viscosity.action(h, theta, v) - gravity.action(h, v);
       };
 
     const auto dF =
       [&](const VectorField<2>& v, const VectorField<2>& q) -> double
       {
-        return gravity.derivative(h, q) + viscosity.derivative(h, theta, v, q);
+        return viscosity.derivative(h, theta, v, q) - gravity.derivative(h, q);
       };
 
     const auto P =
@@ -171,8 +171,8 @@ namespace icepack
 
         // Compute the derivative of the action.
         DualVectorField<2> df =
-          gravity.derivative(h, constraints) +
-          viscosity.derivative(h, theta, v, constraints);
+          viscosity.derivative(h, theta, v, constraints)
+          - gravity.derivative(h, constraints);
 
         // Compute the second derivative of the action.
         const dealii::SparseMatrix<double> A =
