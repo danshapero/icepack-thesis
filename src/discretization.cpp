@@ -116,6 +116,28 @@ namespace icepack
 
 
   template <int dim>
+  dealii::ConstraintMatrix Discretization<dim>::Rank::make_constraints(
+    const std::set<dealii::types::boundary_id>& boundary_ids
+  ) const
+  {
+    const auto merge_behavior = dealii::ConstraintMatrix::right_object_wins;
+
+    dealii::ConstraintMatrix constraints;
+    for (const auto& id: boundary_ids)
+    {
+      dealii::ConstraintMatrix boundary_constraints;
+      dealii::DoFTools::make_zero_boundary_constraints(
+        dof_handler_, id, boundary_constraints);
+      constraints.merge(boundary_constraints, merge_behavior);
+    }
+
+    constraints.merge(constraints_, merge_behavior);
+    constraints.close();
+    return constraints;
+  }
+
+
+  template <int dim>
   Discretization<dim>::Discretization(
     const Triangulation<dim>& tria,
     const unsigned int p

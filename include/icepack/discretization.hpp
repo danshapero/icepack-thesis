@@ -71,15 +71,15 @@ namespace icepack
       const dealii::DoFHandler<dim>& dof_handler() const;
 
       /**
-       * Return the hanging node constraints on the degrees of freedom, i.e. the
-       * constraints necessary to keep fields continuous across regions where
-       * mesh has been adaptively refined.
+       * Return the hanging node constraints on the degrees of freedom, i.e.
+       * the constraints necessary to keep fields continuous across regions
+       * where the mesh has been adaptively refined.
        */
       const dealii::ConstraintMatrix& constraints() const;
 
       /**
-       * Return a sparsity pattern used to create matrices that represent linear
-       * operators acting on fields.
+       * Return a sparsity pattern used to create matrices that represent
+       * linear operators acting on fields.
        */
       const dealii::SparsityPattern& sparsity_pattern() const;
 
@@ -90,11 +90,19 @@ namespace icepack
       const dealii::SparseMatrix<double>& mass_matrix() const;
 
       /**
-       * Return a map describing the boundary values for homogeneous Dirichlet
+       * Create a map describing the boundary values for homogeneous Dirichlet
        * boundary conditions.
        */
       std::map<dealii::types::global_dof_index, double>
       make_zero_boundary_values(const unsigned int boundary_id) const;
+
+      /**
+       * Create a set of constraints incorporating both handing nodes and
+       * Dirichlet boundary conditions
+       */
+      dealii::ConstraintMatrix make_constraints(
+        const std::set<dealii::types::boundary_id>& boundary_ids
+      ) const;
 
     protected:
       std::unique_ptr<dealii::FiniteElement<dim>> fe_;

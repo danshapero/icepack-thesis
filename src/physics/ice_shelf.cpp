@@ -113,33 +113,6 @@ namespace icepack
   {}
 
 
-  namespace
-  {
-    dealii::ConstraintMatrix make_constraints(
-      const typename Discretization<2>::Rank& rank,
-      const std::set<dealii::types::boundary_id>& boundary_ids
-    )
-    {
-      const auto& dof_handler = rank.dof_handler();
-      const auto merge_behavior = dealii::ConstraintMatrix::right_object_wins;
-
-      dealii::ConstraintMatrix constraints;
-      for (const auto& id: boundary_ids)
-      {
-        dealii::ConstraintMatrix boundary_constraints;
-        dealii::DoFTools::make_zero_boundary_constraints(
-          dof_handler, id, boundary_constraints);
-        constraints.merge(boundary_constraints, merge_behavior);
-      }
-
-      const auto& hanging_node_constraints = rank.constraints();
-      constraints.merge(hanging_node_constraints, merge_behavior);
-
-      constraints.close();
-      return constraints;
-    }
-  }
-
 
   VectorField<2> IceShelf::solve(
     const Field<2>& h,
@@ -150,7 +123,7 @@ namespace icepack
   {
     const auto& discretization = get_discretization(h, theta, u0);
     const dealii::ConstraintMatrix constraints =
-      make_constraints(discretization.vector(), dirichlet_boundary_ids);
+      discretization.vector().make_constraints(dirichlet_boundary_ids);
 
     const auto F =
       [&](const VectorField<2>& v) -> double
