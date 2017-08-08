@@ -20,9 +20,6 @@ namespace icepack
   }
 
 
-  using DefaultFlags::flags;
-  using DefaultFlags::face_flags;
-
   constexpr unsigned int faces_per_cell =
     dealii::GeometryInfo<2>::faces_per_cell;
 
