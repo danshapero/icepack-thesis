@@ -24,14 +24,14 @@ int main(int argc, char ** argv)
   using namespace icepack::constants;
   const double rho = rho_ice * (1 - rho_ice / rho_water);
 
-  const double length = 2000.0;
-  const double width = 500.0;
+  const double L = 2000.0;
+  const double W = 500.0;
   const double u0 = 100.0;
   const double h0 = 500.0;
   const double dh = 100.0;
   const double temp = 254.0;
   const double A = std::pow(rho * gravity / 4, 3) * icepack::rate_factor(temp);
-  const double area = length * width;
+  const double area = L * W;
 
   // If we're testing with biquadratic finite elements, use a coarser mesh.
   const size_t num_levels = 5 - quadratic;
@@ -40,29 +40,27 @@ int main(int argc, char ** argv)
   // we expect for all our methods depends on the order of the basis functions.
   const size_t p = 1 + quadratic;
 
-  const auto tria =
-    icepack::testing::rectangular_mesh(length, width, num_levels, refined);
+  const dealii::Triangulation<2> tria =
+    icepack::testing::rectangular_mesh(L, W, num_levels, refined);
   const icepack::Discretization<2> discretization(tria, p);
   const double tolerance = std::pow(icepack::testing::resolution(tria), p + 1);
 
   // Use a constant temperature, and linearly decreasing thickness.
   using icepack::testing::Fn;
-  const auto Theta =
-    Fn<2>([&](const Point<2>&){return temp;});
-  const auto Thickness =
-    Fn<2>([&](const Point<2>& x){return h0 - dh * x[0] / length;});
+  const Fn<2> Theta([&](const Point<2>&){return temp;});
+  const Fn<2> Thickness([&](const Point<2>& x){return h0 - dh * x[0] / L;});
 
   // The solution of the shallow shelf equations with this temperature and
   // thickness can be computed analytically; we'll use this to compare our
   // numerical solutions against.
   using icepack::testing::TensorFn;
-  const auto Velocity =
-    TensorFn<2>([&](const Point<2>& x)
-                {
-                  const double q = 1 - pow(1 - dh * x[0] / (length * h0), 4);
-                  Tensor<1, 2> v{{u0 + A * q * length * pow(h0, 4) / dh / 4, 0}};
-                  return v;
-                });
+  const TensorFn<2> Velocity(
+    [&](const Point<2>& x)
+    {
+      const double q = 1 - pow(1 - dh * x[0] / (L * h0), 4);
+      return Tensor<1, 2>{{u0 + A * q * L * pow(h0, 4) / dh / 4, 0}};
+    }
+  );
 
   /**
    * Interpolate all the exact data to the finite element basis.
@@ -109,18 +107,17 @@ int main(int argc, char ** argv)
   /**
    * Make a perturbation to the velocity field for the following tests.
    */
-  const auto DVelocity =
-    TensorFn<2>([&](const Point<2>& x)
-                {
-                  Tensor<1, 2> v = Velocity.value(x);
-                  const double px = x[0]/length;
-                  const double py = x[1] / width;
-                  const double ax = px * (1 - px);
-                  const double ay = py * (1 - py);
-                  v[0] += ax * ay * 500.0;
-                  v[1] += ax * ay * (0.5 - py) * 500.0;
-                  return v;
-                });
+  const TensorFn<2> DVelocity(
+    [&](const Point<2>& x)
+    {
+      const Tensor<1, 2> v = Velocity.value(x);
+      const double px = x[0] / L;
+      const double py = x[1] / W;
+      const double ax = px * (1 - px);
+      const double ay = py * (1 - py);
+      return v + ax * ay * 500.0 * Tensor<1, 2>{{1.0, 0.5 - py}};
+    }
+  );
 
   const icepack::VectorField<2> du = interpolate(discretization, DVelocity);
 
