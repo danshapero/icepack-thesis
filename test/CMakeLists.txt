@@ -25,7 +25,6 @@ function(icepack_tests)
   endforeach(arg)
 endfunction(icepack_tests)
 
-
 icepack_tests(
   grid_data
   discretization
@@ -34,21 +33,26 @@ icepack_tests(
   viscosity
 )
 
-icepack_exec(field)
-icepack_test(field_basic field)
-icepack_test(field_refined field "--refined")
-icepack_test(field_quadratic field "--quadratic")
+# Build a program and test it with several command line arguments to indicate
+# refinement or quadratic elements
+function(icepack_grid_tests)
+  foreach(arg ${ARGN})
+    icepack_exec(${arg})
+    icepack_test(${arg}_basic ${arg})
+    icepack_test(${arg}_refined ${arg} "--refined")
+    icepack_test(${arg}_quadratic ${arg} "--quadratic")
+  endforeach(arg)
+endfunction(icepack_grid_tests)
 
-icepack_exec(ice_shelf)
-icepack_test(ice_shelf_basic ice_shelf)
-icepack_test(ice_shelf_refined ice_shelf "--refined")
-icepack_test(ice_shelf_quadratic ice_shelf "--quadratic")
+icepack_grid_tests(
+  field
+  ice_shelf
+  mass_transport
+)
 
-icepack_exec(mass_transport)
-icepack_test(mass_transport_basic mass_transport)
-icepack_test(mass_transport_refined mass_transport "--refined")
-icepack_test(mass_transport_quadratic mass_transport "--quadratic")
 
+# Create a make target to check how much of the library is covered by tests
 if(ICEPACK_TEST_COVERAGE)
   setup_target_for_coverage(coverage ctest coverage)
 endif()
+
