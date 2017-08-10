@@ -88,8 +88,8 @@ namespace icepack
    * Nonetheless, there is a lot of common functionality between both cell-wise
    * and face-wise assembly data:
    *
-   *   * `field_values()`: get a reference to the values of some field on the
-   *   current cell
+   *   * `values()`: get a tuple of the values of each field at a quadrature
+   *   point
    *   * `fe_values_view()`: get a view of the scalar or vector
    *   `dealii::FEValues` object on the current cell
    *   * `JxW()`: get the Jacobian of the coordinate transformation at a
@@ -139,6 +139,10 @@ namespace icepack
     double JxW(const unsigned int q) const;
 
   protected:
+    /**
+     * Construct an assembly data object; this is called by the constructors
+     * for the child classes
+     */
     AssemblyDataBase(const size_t n_q_points, Args&&... args);
 
     std::tuple<Args...> evaluators_;
@@ -163,11 +167,18 @@ namespace icepack
     template <size_t N>
     typename std::enable_if<N != sizeof...(Args), void>::type reinit_();
 
-
+    /**
+     * Terminal case of template recursion in helper method to initialize all
+     * of the stored evaluators for the first time
+     */
     template <size_t N>
     typename std::enable_if<N == sizeof...(Args), void>::type
     init_(const size_t n_q_points);
 
+    /**
+     * Induction case of template recursion in helper method to initialize all
+     * of the stored evaluators for the first time
+     */
     template <size_t N>
     typename std::enable_if<N != sizeof...(Args), void>::type
     init_(const size_t n_q_points);
@@ -272,10 +283,10 @@ namespace icepack
   template <int dim, typename... Args>
   auto make_assembly_face_data(Args&&... args)
   {
-    const dealii::QGauss<dim - 1> qd =
+    const dealii::QGauss<dim - 1> quad =
       get_discretization(args.field...).face_quad();
     return
-      AssemblyFaceData<dim, Args...>(qd.size(), std::forward<Args>(args)...);
+      AssemblyFaceData<dim, Args...>(quad.size(), std::forward<Args>(args)...);
   }
 
 
@@ -420,10 +431,7 @@ namespace icepack
   Evaluator(
     const FieldType<rank, dim>& field,
     const Eval& eval
-  ) :
-    field(field),
-    values(0),
-    eval(eval)
+  ) : field(field), values(0), eval(eval)
   {}
 
 
@@ -453,8 +461,7 @@ namespace icepack
   namespace internal
   {
     template <typename... Args, size_t... Is>
-    std::tuple<typename Args::value_type...>
-    values_helper(
+    std::tuple<typename Args::value_type...> assembly_values_helper(
       const std::tuple<Args...>& evaluators,
       const size_t q,
       std::index_sequence<Is...>
@@ -462,23 +469,9 @@ namespace icepack
     {
       return std::make_tuple(std::get<Is>(evaluators).values[q]...);
     }
-  }
 
-
-  template <typename Derived, int dim, typename... Args>
-  std::tuple<typename Args::value_type...>
-  AssemblyDataBase<Derived, dim, Args...>::values(const size_t q) const
-  {
-    const auto index_sequence = std::index_sequence_for<Args...>{};
-    return internal::values_helper(evaluators_, q, index_sequence);
-  }
-
-
-  namespace internal
-  {
     template <size_t dim, typename Tuple, size_t... Is>
-    const Discretization<dim>&
-    assembly_data_discretization_helper(
+    const Discretization<dim>& assembly_discretization_helper(
       const Tuple& tuple,
       std::index_sequence<Is...>
     )
@@ -489,12 +482,20 @@ namespace icepack
 
 
   template <typename Derived, int dim, typename... Args>
+  std::tuple<typename Args::value_type...>
+  AssemblyDataBase<Derived, dim, Args...>::values(const size_t q) const
+  {
+    const auto seq = std::index_sequence_for<Args...>{};
+    return internal::assembly_values_helper(evaluators_, q, seq);
+  }
+
+
+  template <typename Derived, int dim, typename... Args>
   const Discretization<dim>&
   AssemblyDataBase<Derived, dim, Args...>::discretization() const
   {
     const auto seq = std::index_sequence_for<Args...>();
-    return
-      internal::assembly_data_discretization_helper<dim>(evaluators_, seq);
+    return internal::assembly_discretization_helper<dim>(evaluators_, seq);
   }
 
 

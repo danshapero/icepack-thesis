@@ -426,6 +426,8 @@ namespace icepack
    * \f[
    *   \|u\|_{L^\infty} = \max\{|u(x)| : x \in \Omega\}
    * \f]
+   *
+   * @ingroup algebra
    */
   template <int rank, int dim>
   double max(const FieldType<rank, dim>& u)
