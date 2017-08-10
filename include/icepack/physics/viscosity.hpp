@@ -17,17 +17,48 @@ namespace icepack
   /**
    * @brief Computes the stress in the 2D plane as a function of strain rate
    *
+   * This auxiliary class is used to compute the membrane stress at a point
+   * from the depth-averaged ice strain rate. The membrane stress \f$M\f$ is
+   * \f[
+   *   M = 2\mu(\dot\varepsilon + \mathrm{tr}(\dot\varepsilon)I),
+   * \f]
+   * where \f$\mu\f$ is the ice viscosity, \f$\dot\varepsilon\f$ is the strain
+   * rate tensor, and \f$I\f$ is the identity tensor.
+   *
+   * The viscosity is in turn a function of the ice strain rate:
+   * \f[
+   *   \mu = \frac{A(T)^{-1/n}}{2}\sqrt{\frac{\dot\varepsilon : \dot\varepsilon + \mathrm{tr}(\dot\varepsilon)^2}{2}}^{1/n - 1}
+   * \f]
+   * where \f$A\f$ is the rate factor, \f$T\f$ is the temperature, and
+   * \f$n = 3\f$ is the Glen flow law exponent.
+   *
+   * Usually the rate factor \f$A\f$ is defined as an Arrhenius function of the
+   * ice temperature:
+   * \f[
+   *   A(T) = A_0\exp(-Q/RT).
+   * \f]
+   * However, depending on the application, it may be more convenient to use a
+   * different parameterization and a field other than temperature. For
+   * example, the \f$1/T\f$ dependence is numerically challenging when solving
+   * inverse problems. Instead, one might prefer to use the inverse temperature
+   * \f$\beta = QR/T\f$, in which case \f$A(\beta) = A_0e^\beta\f$. You can
+   * pass your own parameterization of the rate factor to the constructor of
+   * this class.
+   *
    * @ingroup physics
    */
   struct MembraneStress
   {
     /**
+     * Type alias for the parameterization of the rate factor
+     */
+    using RateFactor = double (*)(const double);
+
+    /**
      * Create a membrane stress object using the default parameterization of
      * the rate factor as a function of temperature
      */
     MembraneStress(const double n = 3.0);
-
-    using RateFactor = double (*)(const double);
 
     /**
      * Create a membrane stress object using a user-supplied parameterization
@@ -99,8 +130,16 @@ namespace icepack
 
 
   /**
-   * @brief Computes the net power and membrane stress as a function ice
+   * @brief Computes the net power and stress from viscosity as a function ice
    * thickness, temperature, and velocity
+   *
+   * The viscous power dissipation from internal ice shearing is
+   * \f[
+   *   P = \frac{n}{n + 1}\int_\Omega h M : \dot\varepsilon \hspace{1pt}dx
+   * \f]
+   * where \f$n\f$ is the Glen flow law exponent, \f$h\f$ is the ice thickness,
+   * \f$M\f$ is the membrane stress (see the class `MembraneStress`), and
+   * \f$\dot\varepsilon\f$ is the strain rate tensor.
    *
    * @ingroup physics
    */

@@ -38,6 +38,18 @@ namespace icepack
    * @brief Class for solving for the ice velocity and thickness, under the
    * shallow shelf approximation
    *
+   * Let \f$\dot\varepsilon\f$ be the ice strain rate, \f$M\f$ the membrane
+   * stress (see the documentation for `MembraneStress`), and \f$h\f$ the ice
+   * thickness. The velocity of a floating is shelf ss the minimizer of the
+   * functional
+   * \f[
+   *   P = \int_\Omega\left(\frac{n}{n + 1}hM:\dot\varepsilon - \frac{1}{2}\varrho gh^2\nabla\cdot u\right)\hspace{1pt}dx.
+   * \f]
+   * The first term is the power dissipation due to viscosity, and the second
+   * term is the power input due to the ice flowing under its own weight. This
+   * class uses the `Viscosity` and `GravityFloating` classes approximate the
+   * ice velocity by numerically minimizing \f$P\f$.
+   *
    * @ingroup physics
    */
   struct IceShelf

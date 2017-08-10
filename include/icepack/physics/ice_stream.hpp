@@ -44,6 +44,24 @@ namespace icepack
    * @brief Class for solving for the ice velocity and thickness, under the
    * shelfy stream approximation
    *
+   * Some definitions:
+   *   * \f$\dot\varepsilon\f$, \f$M\f$: the ice strain rate tensor and
+   *   membrane stress tensor (see the documentation for `MembraneStress`)
+   *   * \f$u\f$, \f$\tau\f$: the ice velocity and basal shear stress (see
+   *   the documentation for `BasalStress`)
+   *   * \f$h\f$, \f$s\f$: the ice thickness and surface elevation (see the
+   *   documentation for `Gravity`)
+   *
+   * The velocity of a grounded ice stream is the minimizer of the functional
+   * \f[
+   *   P = \int_\Omega\left(\frac{n}{n + 1}hM:\dot\varepsilon + \frac{m}{m + 1}\tau\cdot u + \rho gh\nabla s\cdot u\right)\hspace{1pt}dx.
+   * \f]
+   * These terms are respectively the power dissipation due to viscosity, to
+   * sliding friction, and the power input from ice flowing under its own
+   * weight. This classes uses the `Viscosity`, `Friction`, and `Gravity`
+   * classes to approximate the ice velocity by numericalling minimizing
+   * \f$P\f$.
+   *
    * @ingroup physics
    */
   struct IceStream
