@@ -27,7 +27,7 @@ namespace icepack
      */
     MembraneStress(const double n = 3.0);
 
-    typedef double (*RateFactor)(const double);
+    using RateFactor = double (*)(const double);
 
     /**
      * Create a membrane stress object using a user-supplied parameterization

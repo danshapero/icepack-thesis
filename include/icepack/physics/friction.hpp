@@ -11,7 +11,7 @@ namespace icepack
   {
     BasalStress(const double m = 3.0);
 
-    typedef double (*FrictionCoefficient)(const double);
+    using FrictionCoefficient = double (*)(const double);
 
     BasalStress(
       const double m,
