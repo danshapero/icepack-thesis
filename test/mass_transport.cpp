@@ -1,6 +1,5 @@
 
 #include <icepack/physics/constants.hpp>
-#include <icepack/physics/ssa.hpp>
 #include <icepack/physics/mass_transport.hpp>
 #include "testing.hpp"
 #include <deal.II/base/function.h>
