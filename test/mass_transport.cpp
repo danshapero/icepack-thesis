@@ -149,8 +149,13 @@ int main(int argc, char ** argv)
 
 
   const auto test_solver =
-    [&](const auto& H0, const auto& U, const auto& A, const auto& H_inflow,
-        const auto& H)
+    [&, verbose](
+      const auto& H0,
+      const auto& U,
+      const auto& A,
+      const auto& H_inflow,
+      const auto& H
+    )
     {
       const icepack::Field<2> h0 = interpolate(discretization, H0);
       const icepack::VectorField<2> u = interpolate(discretization, U);
