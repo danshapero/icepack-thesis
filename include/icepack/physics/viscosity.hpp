@@ -10,6 +10,8 @@ namespace icepack
   /**
    * Compute the rate factor `A` in Glen's flow law as a function of the ice
    * temperature. See Greve and Blatter or Cuffey and Paterson.
+   *
+   * @ingroup physics
    */
   double rate_factor(const double temperature);
 
