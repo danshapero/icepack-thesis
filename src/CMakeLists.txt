@@ -1,6 +1,7 @@
 
 set(SOURCES
   utilities.cpp
+  mesh.cpp
   grid_data.cpp
   discretization.cpp
   field.cpp
