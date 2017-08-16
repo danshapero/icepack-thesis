@@ -1,9 +1,9 @@
 
 # -------------
 # Do not modify
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.8)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.0.2)
 
-FIND_PACKAGE(deal.II 8.4 QUIET
+FIND_PACKAGE(deal.II 9.0.0 QUIET
   HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR}
   )
 IF(NOT ${deal.II_FOUND})
@@ -41,4 +41,17 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/doc")
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)
 
-#add_subdirectory("${CMAKE_SOURCE_DIR}/python")
+include (CMakePackageConfigHelpers)
+export(EXPORT icepackTargets
+  FILE "${CMAKE_CURRENT_BINARY_DIR}/icepackTargets.cmake")
+configure_file(cmake/icepack-config.cmake
+    "${CMAKE_CURRENT_BINARY_DIR}/icepack/icepack-config.cmake" COPYONLY)
+
+set(ConfigPackageLocation share/cmake/icepack)
+install(EXPORT icepackTargets
+  FILE icepackTargets.cmake
+  DESTINATION ${ConfigPackageLocation})
+install(
+  FILES cmake/icepack-config.cmake
+  DESTINATION ${ConfigPackageLocation})
+

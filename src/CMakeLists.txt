@@ -12,7 +12,12 @@ set(SOURCES
   physics/mass_transport.cpp
 )
 
-add_library(icepack ${SOURCES})
+include (GenerateExportHeader)
+add_library(icepack SHARED ${SOURCES})
 DEAL_II_SETUP_TARGET(icepack)
+generate_export_header(icepack)
 
-install(TARGETS icepack DESTINATION lib)
+install(TARGETS icepack
+  DESTINATION lib
+  EXPORT icepackTargets)
+
