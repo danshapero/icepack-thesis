@@ -2,7 +2,7 @@
 #ifndef ICEPACK_DISCRETIZATION_HPP
 #define ICEPACK_DISCRETIZATION_HPP
 
-#include <memory>  // std::unique_ptr
+#include <memory>  // std::unique_ptr, std::shared_ptr
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/function.h>
 #include <deal.II/base/synchronous_iterator.h>
@@ -17,7 +17,13 @@
 
 namespace icepack
 {
-  using dealii::Triangulation;
+  template <int dim> class Discretization;
+
+  template <int dim>
+  std::shared_ptr<const Discretization<dim>> make_discretization(
+    const dealii::Triangulation<dim>& tria,
+    const unsigned int degree
+  );
 
 
   /**
@@ -27,13 +33,14 @@ namespace icepack
    * @ingroup field
    */
   template <int dim>
-  class Discretization : public dealii::Subscriptor
+  class Discretization :
+    public std::enable_shared_from_this<Discretization<dim>>
   {
   public:
 
     /**
-     * @brief Helper class for data specific to a given tensor rank, i.e. rank-0
-     * for scalar and rank-1 for tensor fields.
+     * @brief Helper class for data specific to a given tensor rank, i.e.
+     * rank-0 for scalar and rank-1 for tensor fields.
      */
     class Rank
     {
@@ -43,7 +50,11 @@ namespace icepack
        * polynomial degree `p` of the finite element basis, i.e. `p = 1` for
        * bilinear finite elements, `p = 2` for biquadratic, etc.
        */
-      Rank(const Triangulation<dim>& tria, unsigned int p, unsigned int rank);
+      Rank(
+        const dealii::Triangulation<dim>& tria,
+        const unsigned int p,
+        const unsigned int rank
+      );
 
       /**
        * Construct a new `Rank` object by transferring data from another `Rank`
@@ -112,12 +123,6 @@ namespace icepack
       dealii::SparseMatrix<double> mass_matrix_;
     };
 
-    /**
-     * Construct a discretization from the geometry and the desired degree of
-     * the finite element basis, i.e. `degree = 1` for bilinear elements, 2 for
-     * biquadratic elements, etc.
-     */
-    Discretization(const Triangulation<dim>& tria, unsigned int degree);
 
     /**
      * Destructor; frees all memory used by the discretization.
@@ -128,7 +133,7 @@ namespace icepack
     /**
      * Return a reference to the underlying geometry for this discretization.
      */
-    const Triangulation<dim>& triangulation() const;
+    const dealii::Triangulation<dim>& triangulation() const;
 
     /**
      * Return a quadrature object sufficient to exactly integrate polynomials of
@@ -167,10 +172,10 @@ namespace icepack
 
     /**
      * This type stores a pair of DoF iterators, one for scalar fields and one
-     * for vector fields. Rather construct both iterators separately and have to
-     * manually write the code for stepping through each in step, you can use
-     * this single iterator to evaluate quantities that depend on both scalar
-     * and vector fields.
+     * for vector fields. Rather construct both iterators separately and have
+     * to manually write the code for stepping through each in sync, you can
+     * use this single iterator to evaluate quantities that depend on both
+     * scalar and vector fields.
      */
     using iterator =
       dealii::SynchronousIterators<std::tuple<dof_iterator, dof_iterator>>;
@@ -188,10 +193,40 @@ namespace icepack
     iterator end() const;
 
   protected:
+    /**
+     * Construct a discretization from the geometry and the desired degree of
+     * the finite element basis, i.e. `degree = 1` for bilinear elements, 2 for
+     * biquadratic elements, etc.
+     */
+    Discretization(
+      const dealii::Triangulation<dim>& tria,
+      const unsigned int degree
+    );
+
+    friend std::shared_ptr<const Discretization<dim>> make_discretization<dim>(
+      const dealii::Triangulation<dim>&,
+      const unsigned int
+    );
+
+    const dealii::Triangulation<dim> tria_;
     std::array<Rank, 2> ranks_;
   };
 
+
+  /**
+   * Return a smart pointer to a discretization
+   */
+  template <int dim>
+  std::shared_ptr<const Discretization<dim>> make_discretization(
+    const dealii::Triangulation<dim>& tria,
+    const unsigned int degree
+  )
+  {
+    return std::shared_ptr<const Discretization<dim>>
+      (new Discretization<dim>(tria, degree));
+  }
+
 } // namespace icepack
 
-
 #endif
+

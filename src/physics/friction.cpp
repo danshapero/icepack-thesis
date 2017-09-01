@@ -104,7 +104,7 @@ namespace icepack
   ) const
   {
     const auto& discretization = get_discretization(beta, u);
-    DualVectorField<2> f(discretization);
+    DualVectorField<2> f(discretization.shared_from_this());
 
     const auto quad = discretization.quad();
     auto assembly_data = make_assembly_data<2>(

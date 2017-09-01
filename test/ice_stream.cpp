@@ -99,7 +99,8 @@ int main(int argc, char ** argv)
 
   const dealii::Triangulation<2> tria =
     icepack::testing::rectangular_mesh(L, W, num_levels, refined);
-  const icepack::Discretization<2> discretization(tria, p);
+  const auto dptr = icepack::make_discretization(tria, p);
+  const icepack::Discretization<2>& discretization = *dptr;
   const double tolerance = std::pow(icepack::testing::resolution(tria), p + 1);
 
   const icepack::Field<2> h = interpolate(discretization, Thickness);

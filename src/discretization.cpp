@@ -7,8 +7,11 @@
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 
+
 namespace icepack
 {
+  using dealii::Triangulation;
+
   namespace
   {
     template <int dim>
@@ -47,8 +50,8 @@ namespace icepack
     sparsity_pattern_.copy_from(dsp);
 
     mass_matrix_.reinit(sparsity_pattern_);
-    dealii::MatrixCreator::
-      create_mass_matrix(dof_handler_, dealii::QGauss<dim>(p + 1), mass_matrix_);
+    const dealii::QGauss<dim> qd(p + 1);
+    dealii::MatrixCreator::create_mass_matrix(dof_handler_, qd, mass_matrix_);
   }
 
 
@@ -137,11 +140,23 @@ namespace icepack
   }
 
 
+  namespace
+  {
+    template <int dim>
+    Triangulation<dim> copy_tria(const Triangulation<dim>& tria)
+    {
+      Triangulation<dim> new_tria;
+      new_tria.copy_triangulation(tria);
+      return new_tria;
+    }
+  }
+
+
   template <int dim>
   Discretization<dim>::Discretization(
     const Triangulation<dim>& tria,
     const unsigned int p
-  ) : ranks_{{ {tria, p, 0}, {tria, p, 1} }}
+  ) : tria_(copy_tria(tria)), ranks_{{ {tria_, p, 0}, {tria_, p, 1} }}
   {}
 
   template <int dim>
@@ -151,7 +166,7 @@ namespace icepack
   template <int dim>
   const Triangulation<dim>& Discretization<dim>::triangulation() const
   {
-    return scalar().dof_handler().get_triangulation();
+    return tria_;
   }
 
   template <int dim>
@@ -204,4 +219,6 @@ namespace icepack
   }
 
   template class Discretization<2>;
+
 }
+

@@ -133,7 +133,7 @@ namespace icepack
     DualField<2> r = transpose(Field<2>(h0 + dt * a));
     dealii::Vector<double>& R = r.coefficients();
 
-    Field<2> h(discretization);
+    Field<2> h(discretization.shared_from_this());
     dealii::Vector<double>& H = h.coefficients();
 
     dealii::SparseMatrix<double> F = flux_matrix(u);

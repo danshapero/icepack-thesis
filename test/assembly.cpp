@@ -12,7 +12,8 @@ using icepack::testing::AffineTensorFunction;
 int main()
 {
   dealii::Triangulation<2> tria = icepack::testing::example_mesh();
-  icepack::Discretization<2> discretization(tria, 1);
+  const auto dptr = icepack::make_discretization(tria, 1);
+  const icepack::Discretization<2>& discretization = *dptr;
 
   const dealii::QGauss<2> quad = discretization.quad();
   const dealii::QGauss<1> face_quad = discretization.face_quad();

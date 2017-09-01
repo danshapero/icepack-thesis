@@ -114,7 +114,7 @@ namespace icepack
      * Construct a field which is 0 everywhere given the data about its finite
      * element discretization.
      */
-    FieldType(const Discretization<dim>& discretization);
+    FieldType(std::shared_ptr<const Discretization<dim>> discretization);
 
     /**
      * Move constructor. This allows fields to be returned from functions,
@@ -179,7 +179,7 @@ namespace icepack
 
 
     /**
-     * Return a const reference to the underlying discretization for this field,
+     * Return a reference to the underlying discretization for this field,
      * from which various other useful data can be accessed -- the degree-of-
      * freedom handler, the hanging node constraints, etc.
      */
@@ -235,11 +235,12 @@ namespace icepack
 
   protected:
     /**
-     * Keep a pointer to the underlying discretization for this field. If the
-     * discretization is destroyed before this field is done with it, deal.II
-     * will throw an exception to let us know that something went wrong.
+     * Store a shared pointer to the discretization
+     *
+     * Using this smart pointer class will ensure that the discretization is
+     * kept alive so long as there are other fields or objects that refer to it
      */
-    dealii::SmartPointer<const Discretization<dim>> discretization_;
+    std::shared_ptr<const Discretization<dim>> discretization_;
 
     /**
      * The Galerkin expansion coefficients for this field.
@@ -282,8 +283,8 @@ namespace icepack
 
   /**
    * Given a discretization and an analytical description of a vector field,
-   * represented by a `dealii::TensorFunction` object, interpolate this function
-   * to the finite element basis.
+   * represented by a `dealii::TensorFunction` object, interpolate this
+   * function to the finite element basis.
    *
    * @ingroup interpolation
    */
@@ -348,11 +349,10 @@ namespace icepack
   template <typename F, typename... Args>
   const auto& get_discretization(const F& phi, Args&&... args)
   {
-    const auto& dsc1 = phi.discretization();
-    const auto& dsc2 = get_discretization(args...);
-    Assert(&dsc1 == &dsc2, dealii::ExcInternalError());
+    const auto& dsc = phi.discretization();
+    Assert(&dsc == &get_discretization(args...), dealii::ExcInternalError());
 
-    return dsc1;
+    return dsc;
   }
 
 
@@ -365,8 +365,8 @@ namespace icepack
   template <int rank, int dim>
   FieldType<rank, dim, dual> transpose(const FieldType<rank, dim, primal>& phi)
   {
-    const auto& discretization = phi.discretization();
-    FieldType<rank, dim, dual> f(discretization);
+    const Discretization<dim>& discretization = phi.discretization();
+    FieldType<rank, dim, dual> f(discretization.shared_from_this());
 
     const auto& M = discretization(rank).mass_matrix();
     M.vmult(f.coefficients(), phi.coefficients());
@@ -385,8 +385,9 @@ namespace icepack
   template <int rank, int dim>
   FieldType<rank, dim, primal> transpose(const FieldType<rank, dim, dual>& f)
   {
-    const auto& discretization = f.discretization();
-    const auto& constraints = discretization(rank).constraints();
+    const Discretization<dim>& discretization = f.discretization();
+    const dealii::ConstraintMatrix& constraints =
+      discretization(rank).constraints();
 
     const dealii::SparseMatrix<double>& M = discretization(rank).mass_matrix();
     dealii::SparseMatrix<double> A(M.get_sparsity_pattern());
@@ -397,7 +398,7 @@ namespace icepack
     dealii::SparseDirectUMFPACK B;
     B.initialize(A);
 
-    FieldType<rank, dim, primal> phi(discretization);
+    FieldType<rank, dim, primal> phi(discretization.shared_from_this());
     B.vmult(phi.coefficients(), g.coefficients());
     constraints.distribute(phi.coefficients());
 
@@ -432,7 +433,7 @@ namespace icepack
   template <int rank, int dim>
   double max(const FieldType<rank, dim>& u)
   {
-    const auto& discretization = u.discretization();
+    const Discretization<dim>& discretization = u.discretization();
     const auto& fe = discretization(rank).finite_element();
     const unsigned int p = fe.tensor_degree() + 1;
 
@@ -481,14 +482,14 @@ namespace icepack
     const FieldType<rank, dim>& phi2
   )
   {
-    const auto& discretization = get_discretization(phi1, phi2);
+    const Discretization<dim>& discretization = get_discretization(phi1, phi2);
     const auto& M = discretization(rank).mass_matrix();
     return M.matrix_scalar_product(phi1.coefficients(), phi2.coefficients());
   }
 
   /**
-   * Compute the duality pairing between a linear functional \f$f\f$ and a field
-   * \f$\phi\f$.
+   * Compute the duality pairing between a linear functional \f$f\f$ and a
+   * field \f$\phi\f$.
    *
    * @ingroup algebra
    */
@@ -498,7 +499,10 @@ namespace icepack
     const FieldType<rank, dim, primal>& phi
   )
   {
+    // This is here to make sure that the two arguments have the same
+    // discretization.
     get_discretization(f, phi);
+
     return f.coefficients() * phi.coefficients();
   }
 
@@ -514,7 +518,7 @@ namespace icepack
     const FieldType<rank, dim>& phi2
   )
   {
-    const auto& discretization = get_discretization(phi1, phi2);
+    const Discretization<dim>& discretization = get_discretization(phi1, phi2);
     const auto& fe = discretization(rank).finite_element();
     const auto quad = discretization.quad();
     dealii::FEValues<dim> fe_values(fe, quad, DefaultFlags::flags);
@@ -576,7 +580,7 @@ namespace icepack
   template <class Expr>
   FieldType<rank, dim, duality>::
   FieldType(FieldExpr<rank, dim, duality, Expr>&& expr) :
-    discretization_(&expr.discretization()),
+    discretization_(expr.discretization().shared_from_this()),
     coefficients_(discretization()(rank).dof_handler().n_dofs())
   {
     for (size_t k = 0; k < coefficients_.size(); ++k)
@@ -734,9 +738,9 @@ namespace icepack
    */
   template <int rank, int dim, Duality duality, class Expr>
   ScalarMultiplyExpr<rank, dim, duality, Expr>
-  operator*(const double alpha, const FieldExpr<rank, dim, duality, Expr>& expr)
+  operator*(const double a, const FieldExpr<rank, dim, duality, Expr>& expr)
   {
-    return ScalarMultiplyExpr<rank, dim, duality, Expr>(alpha, expr);
+    return ScalarMultiplyExpr<rank, dim, duality, Expr>(a, expr);
   }
 
 
@@ -747,9 +751,9 @@ namespace icepack
    * @ingroup algebra */
   template <int rank, int dim, Duality duality, class Expr>
   ScalarMultiplyExpr<rank, dim, duality, Expr>
-  operator/(const FieldExpr<rank, dim, duality, Expr>& expr, const double alpha)
+  operator/(const FieldExpr<rank, dim, duality, Expr>& expr, const double a)
   {
-    return ScalarMultiplyExpr<rank, dim, duality, Expr>(1.0/alpha, expr);
+    return ScalarMultiplyExpr<rank, dim, duality, Expr>(1.0/a, expr);
   }
 
 
@@ -768,8 +772,8 @@ namespace icepack
 
 
   /**
-   * @brief Proxy object representing the result of adding two field expressions
-   * together.
+   * @brief Proxy object representing the result of adding two field
+   * expressions together.
    *
    * The two expressions must have the same underlying discretization.
    *

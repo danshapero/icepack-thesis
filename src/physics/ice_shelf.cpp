@@ -51,7 +51,7 @@ namespace icepack
   ) const
   {
     const auto& discretization = get_discretization(h);
-    DualVectorField<2> tau(discretization);
+    DualVectorField<2> tau(discretization.shared_from_this());
 
     const auto quad = discretization.quad();
     auto assembly_data = make_assembly_data<2>(evaluate::function(h));
@@ -140,7 +140,7 @@ namespace icepack
     const auto P =
       [&](const VectorField<2>& v) -> VectorField<2>
       {
-        VectorField<2> p(discretization);
+        VectorField<2> p(discretization.shared_from_this());
 
         // Compute the derivative of the action.
         DualVectorField<2> df =

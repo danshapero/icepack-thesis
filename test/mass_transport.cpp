@@ -56,7 +56,8 @@ int main(int argc, char ** argv)
 
   const dealii::Triangulation<2> tria =
     icepack::testing::rectangular_mesh(length, width, num_levels, refined);
-  const icepack::Discretization<2> discretization(tria, p);
+  const auto dptr = icepack::make_discretization(tria, p);
+  const icepack::Discretization<2>& discretization = *dptr;
   const double tolerance = std::pow(icepack::testing::resolution(tria), p);
 
   const icepack::MassTransportImplicit mass_transport;
@@ -86,7 +87,7 @@ int main(int argc, char ** argv)
 
         const dealii::SparseMatrix<double> F = mass_transport.flux_matrix(u);
         const icepack::Field<2> h = interpolate(discretization, Thickness);
-        icepack::DualField<2> f(discretization);
+        icepack::DualField<2> f(discretization.shared_from_this());
         F.vmult(f.coefficients(), h.coefficients());
         const icepack::Field<2> flux = transpose(f);
 

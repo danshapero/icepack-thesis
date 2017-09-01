@@ -14,17 +14,19 @@ namespace icepack
    * ----------------------------------------- */
 
   template <int rank, int dim, Duality duality>
-  FieldType<rank, dim, duality>::FieldType(const Discretization<dim>& dsc)
-    : discretization_(&dsc),
-      coefficients_(discretization()(rank).dof_handler().n_dofs())
+  FieldType<rank, dim, duality>::
+  FieldType(std::shared_ptr<const Discretization<dim>> discretization) :
+    discretization_(discretization),
+    coefficients_(discretization_->operator()(rank).dof_handler().n_dofs())
   {
     coefficients_ = 0;
   }
 
   template <int rank, int dim, Duality duality>
-  FieldType<rank, dim, duality>::FieldType(FieldType<rank, dim, duality>&& phi)
-    : discretization_(phi.discretization_),
-      coefficients_(std::move(phi.coefficients_))
+  FieldType<rank, dim, duality>::
+  FieldType(FieldType<rank, dim, duality>&& phi) :
+    discretization_(phi.discretization_),
+    coefficients_(std::move(phi.coefficients_))
   {
     phi.discretization_ = nullptr;
     phi.coefficients_.reinit(0);
@@ -141,7 +143,7 @@ namespace icepack
     const dealii::Function<dim>& phi
   )
   {
-    Field<dim> Phi(discretization);
+    Field<dim> Phi(discretization.shared_from_this());
     const auto& dof_handler = discretization.scalar().dof_handler();
     dealii::VectorTools::interpolate(dof_handler, phi, Phi.coefficients());
     return Phi;
@@ -155,7 +157,7 @@ namespace icepack
     const dealii::TensorFunction<1, dim>& phi
   )
   {
-    VectorField<dim> Phi(discretization);
+    VectorField<dim> Phi(discretization.shared_from_this());
     const dealii::VectorFunctionFromTensorFunction<dim> vphi(phi);
     const auto& dof_handler = discretization.vector().dof_handler();
     dealii::VectorTools::interpolate(dof_handler, vphi, Phi.coefficients());

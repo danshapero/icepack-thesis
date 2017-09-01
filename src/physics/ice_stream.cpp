@@ -94,7 +94,7 @@ namespace icepack
   ) const
   {
     const auto& discretization = get_discretization(h, s);
-    DualVectorField<2> tau(discretization);
+    DualVectorField<2> tau(discretization.shared_from_this());
 
     const auto quad = discretization.quad();
     auto assembly_data =
@@ -222,7 +222,7 @@ namespace icepack
     const auto P =
       [&](const VectorField<2>& v) -> VectorField<2>
       {
-        VectorField<2> p(discretization);
+        VectorField<2> p(discretization.shared_from_this());
 
         DualVectorField<2> df =
           viscosity.derivative(h, theta, v, constraints) +
