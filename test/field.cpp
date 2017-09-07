@@ -225,7 +225,7 @@ int main(int argc, char ** argv)
     {
       auto phi = icepack::interpolate(discretization, Phi);
       const std::string filename = "phi.ucd";
-      icepack::write_ucd(phi, filename, "phi");
+      phi.write_ucd(filename, "phi");
       std::ifstream stream(filename.c_str());
       CHECK(stream.good());
       std::remove(filename.c_str());
@@ -238,3 +238,4 @@ int main(int argc, char ** argv)
 
   return 0;
 }
+

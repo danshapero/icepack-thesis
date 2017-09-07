@@ -85,29 +85,16 @@ namespace icepack
   }
 
 
-  // Explicitly instantiate a bunch of templates.
-  template class FieldType<0, 2, primal>;
-  template class FieldType<1, 2, primal>;
-  template class FieldType<0, 2, dual>;
-  template class FieldType<1, 2, dual>;
-
-
-
-  /* -----------
-   * File output
-   * ----------- */
-
-  template <int rank, int dim>
-  void write_ucd(
-    const FieldType<rank, dim>& u,
+  template <int rank, int dim, Duality duality>
+  void FieldType<rank, dim, duality>::write_ucd(
     const std::string& filename,
     const std::string& field_name
-  )
+  ) const
   {
     std::ofstream stream(filename.c_str());
 
     dealii::DataOut<dim> data_out;
-    data_out.attach_dof_handler(u.discretization()(rank).dof_handler());
+    data_out.attach_dof_handler(discretization()(rank).dof_handler());
 
     std::vector<std::string> component_names;
     if (rank == 1)
@@ -116,20 +103,17 @@ namespace icepack
     else
       component_names.push_back(field_name);
 
-    data_out.add_data_vector(u.coefficients(), component_names);
+    data_out.add_data_vector(coefficients_, component_names);
     data_out.build_patches();
     data_out.write_ucd(stream);
   }
 
-  template
-  void write_ucd<0, 2>(
-    const Field<2>&, const std::string&, const std::string&
-  );
 
-  template
-  void write_ucd<1, 2>(
-    const VectorField<2>&, const std::string&, const std::string&
-  );
+  // Explicitly instantiate a bunch of templates.
+  template class FieldType<0, 2, primal>;
+  template class FieldType<1, 2, primal>;
+  template class FieldType<0, 2, dual>;
+  template class FieldType<1, 2, dual>;
 
 
 

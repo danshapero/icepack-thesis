@@ -233,6 +233,15 @@ namespace icepack
                                 dealii::FEValuesViews::Scalar<dim>,
                                 dealii::FEValuesViews::Vector<dim>>::type;
 
+    /**
+     * Write out a field to a file in the `.ucd` format.
+     */
+    void write_ucd(
+      const std::string& filename,
+      const std::string& field_name
+    ) const;
+
+
   protected:
     /**
      * Store a shared pointer to the discretization
@@ -305,24 +314,6 @@ namespace icepack
     const Discretization<2>& discretization,
     const dealii::Function<2>& phi1,
     const dealii::Function<2>& phi2
-  );
-
-
-
-  /* -----------
-   * File output
-   * ----------- */
-
-  /**
-   * Write out a field to a file in the `.ucd` format.
-   *
-   * @ingroup field
-   */
-  template <int rank, int dim>
-  void write_ucd(
-    const FieldType<rank, dim>& u,
-    const std::string& filename,
-    const std::string& field_name = "u"
   );
 
 
