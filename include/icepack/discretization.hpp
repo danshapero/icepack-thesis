@@ -181,8 +181,8 @@ namespace icepack
       dealii::SynchronousIterators<std::tuple<dof_iterator, dof_iterator>>;
 
     /**
-     * Return an iterator pointing to the start of the scalar and vector degrees
-     * of freedom.
+     * Return an iterator pointing to the start of the scalar and vector
+     * degrees of freedom.
      */
     iterator begin() const;
 
@@ -197,12 +197,22 @@ namespace icepack
      * Construct a discretization from the geometry and the desired degree of
      * the finite element basis, i.e. `degree = 1` for bilinear elements, 2 for
      * biquadratic elements, etc.
+     *
+     * This constructor is not public because discretization objects should be
+     * created only through a shared pointer.
      */
     Discretization(
       const dealii::Triangulation<dim>& tria,
       const unsigned int degree
     );
 
+    // TODO: Add an overload of the constructor for r-value references to the
+    // mesh so that it can be moved rather than copied.
+
+    /**
+     * Give the function `make_discretization` access to the constructor for
+     * this class.
+     */
     friend std::shared_ptr<const Discretization<dim>> make_discretization<dim>(
       const dealii::Triangulation<dim>&,
       const unsigned int
@@ -214,7 +224,21 @@ namespace icepack
 
 
   /**
-   * Return a smart pointer to a discretization
+   * @brief Make a discretization object used to keep track of the degrees of
+   * freedom and the finite element for fields defined over a given domain.
+   *
+   * This function will copy the mesh into the discretization, which always
+   * owns the underlying geometry. Changes made to the original mesh passed to
+   * this function, i.e. refinement or smoothing, will not be reflected in the
+   * discretization.
+   *
+   * Rather than create a `Discretization` object itself, this function makes a
+   * smart pointer that allows it to be shared among several objects. In our
+   * case, those objects are the many fields and vector fields that will be
+   * created using this discretization. The smart pointer will clean up the
+   * discretization once there are no more objects that refer to it.
+   *
+   * @ingroup field
    */
   template <int dim>
   std::shared_ptr<const Discretization<dim>> make_discretization(

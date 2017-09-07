@@ -10,7 +10,7 @@ int main(int argc, char ** argv)
 
   dealii::Triangulation<2> tria(icepack::testing::example_mesh(5, refined));
   const std::shared_ptr<const icepack::Discretization<2>> discretization =
-      icepack::make_discretization(tria, 1);
+    icepack::make_discretization(tria, 1);
 
   CHECK(discretization->triangulation().n_cells() == tria.n_cells());
   CHECK(discretization->quad().size() > 0);
