@@ -53,7 +53,8 @@ namespace icepack
   {
     const double c = C(beta) * std::pow(u.norm(), 1/m - 1);
     const Tensor<1, 2> gamma = u / u.norm();
-    return c * (I + (1 - m) / m * outer_product(gamma, gamma));
+    const SymmetricTensor<2, 2> G = symmetrize(outer_product(gamma, gamma));
+    return c * (I + (1 - m) / m * G);
   }
 
 
