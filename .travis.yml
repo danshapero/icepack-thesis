@@ -1,0 +1,23 @@
+
+sudo: required
+
+language: cpp
+
+services:
+    - docker
+
+env:
+    - VERSION=5
+    - VERSION=6
+    - VERSION=7
+
+before_install:
+    - docker pull icepack/dealii:gcc-$VERSION
+    - docker run -itd --name build icepack/dealii:gcc-$VERSION
+    - docker exec build git clone https://github.com/danshapero/icepack.git /repo
+
+script:
+    - docker exec build cmake -H/repo -B/build
+    - docker exec build cmake --build /build
+    - docker exec build cmake --build /build --target test
+
