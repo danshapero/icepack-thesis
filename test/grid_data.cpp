@@ -122,5 +122,49 @@ int main()
     CHECK_REAL(max_diff, 0.0, 1.0e-15);
   }
 
+
+  TEST_SUITE("writing Arc ASCII grids")
+  {
+    const size_t nx = 128, ny = 192;
+    const double dx = 2.0, dy = 2.0;
+    const double x0 = 3.0, y0 = 7.0;
+
+    const dealii::Point<2> lower(x0, y0);
+    const dealii::Point<2> upper(x0 + nx * dx, y0 + ny * dy);
+
+    dealii::Table<2, double> data(nx + 1, ny + 1);
+
+    for (size_t i = 0; i <= ny; ++i)
+      for (size_t j = 0; j <= nx; ++j)
+        data[j][i] = (x0 + j * dx) + (y0 + i * dy);
+
+    const double missing = -9999.0;
+    const size_t I = ny / 2, J = nx / 2;
+    data[J][I] = missing;
+
+    dealii::Table<2, bool> mask(nx + 1, ny + 1);
+    for (size_t i = 0; i < ny; ++i)
+      for (size_t j = 0; j < nx; ++j)
+        mask(j, i) = false;
+    mask(J, I) = true;
+
+    const std::string filename("grid_data_output.txt");
+    const icepack::GridData<2> grid_data(lower, upper, data, mask);
+    write_arc_ascii_grid(grid_data, filename, -9999.0);
+
+    const icepack::GridData<2> grid_data_in =
+      icepack::read_arc_ascii_grid(filename);
+
+    const std::array<size_t, 2> n_subintervals = grid_data_in.n_subintervals();
+    CHECK((n_subintervals[0] == nx) and (n_subintervals[1] == ny));
+
+    for (size_t i = 0; i < nx; ++i)
+      for (size_t j = 0; j < ny; ++j)
+      {
+        CHECK(grid_data.mask(i, j) == grid_data_in.mask(i, j));
+        CHECK_REAL(grid_data.data(i, j), grid_data_in.data(i, j), 1.0e-8);
+      }
+  }
+
   return 0;
 }

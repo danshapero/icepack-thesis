@@ -199,5 +199,46 @@ namespace icepack
     return GridData<2>(lower, upper, table, mask);
   }
 
+
+  void write_arc_ascii_grid(
+    const GridData<2>& grid,
+    const std::string& filename,
+    const double no_data_value
+  )
+  {
+    const std::array<size_t, 2> n_subintervals = grid.n_subintervals();
+    const size_t nx = n_subintervals[0] + 1;
+    const size_t ny = n_subintervals[1] + 1;
+
+    const dealii::Point<2> cell_size = grid.cell_size();
+    Assert(std::abs(cell_size[0] - cell_size[1]) < 1.0e-8 * cell_size.norm(),
+           dealii::ExcInternalError());
+    const double dx = cell_size[0];
+
+    const dealii::Point<2> xo = grid.grid_point(std::array<size_t, 2>{{0, 0}});
+
+    std::ofstream file_stream(filename);
+    file_stream << "ncols          " << nx << "\n"
+                << "nrows          " << ny << "\n"
+                << "xllcorner      " << xo[0] << "\n"
+                << "yllcorner      " << xo[1] << "\n"
+                << "cellsize       " << dx << "\n"
+                << "NODATA_value   " << no_data_value << "\n";
+
+    for (unsigned int i = 0; i < ny; ++i)
+    {
+      for (unsigned int j = 0; j < nx; ++j)
+      {
+        const bool mask = grid.mask(j, ny - i - 1);
+        file_stream << (mask ? no_data_value : grid.data(j, ny - i - 1));
+        file_stream << " ";
+      }
+
+      file_stream << "\n";
+    }
+
+    file_stream.close();
+  }
+
 }
 

@@ -91,6 +91,15 @@ namespace icepack
    */
   GridData<2> read_arc_ascii_grid(const std::string& filename);
 
+
+  /**
+   * Write out a gridded data set using the ESRI Arc/Info ASCII grid format.
+   */
+  void write_arc_ascii_grid(
+    const GridData<2>& grid,
+    const std::string& filename,
+    const double missing_data_value
+  );
 }
 
 #endif
