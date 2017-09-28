@@ -1,10 +1,16 @@
 
-#include <fstream>
 #include <icepack/grid_data.hpp>
 #include "testing.hpp"
+#include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_tools.h>
+#include <deal.II/grid/manifold_lib.h>
+#include <fstream>
 
-int main()
+int main(int argc, char ** argv)
 {
+  const auto args = icepack::testing::get_cmdline_args(argc, argv);
+  const bool verbose = args.count("--verbose");
+
   TEST_SUITE("manually creating gridded data sets")
   {
     // Make the coordinate values
@@ -166,5 +172,60 @@ int main()
       }
   }
 
+
+  TEST_SUITE("interpolating finite element fields to regular grids")
+  {
+    const dealii::Point<2> center(0.0, 0.0);
+    const double inner_r = 0.5;
+    const double outer_r = 1.0;
+    dealii::SphericalManifold<2, 2> surface(center);
+
+    dealii::Triangulation<2> tria;
+    dealii::GridGenerator::hyper_shell(tria, center, inner_r, outer_r, 4);
+    tria.set_all_manifold_ids(0);
+    tria.set_manifold(0, surface);
+    const size_t num_levels = 2;
+    tria.refine_global(num_levels);
+
+    const size_t p = 1;
+    const auto discretization = icepack::make_discretization(tria, p);
+
+    const icepack::testing::AffineFunction Phi(1, dealii::Point<2>(4, 2));
+    const icepack::Field<2> phi = icepack::interpolate(*discretization, Phi);
+
+    const double dx = 0.5 * dealii::GridTools::minimal_cell_diameter(tria);
+    const icepack::GridData<2> Psi = icepack::field_to_grid(phi, dx);
+
+    const size_t nx = Psi.data.size(0);
+    const size_t ny = Psi.data.size(1);
+
+    size_t num_entries = 0;
+    for (size_t i = 0; i < nx; ++i)
+      for (size_t j = 0; j < ny; ++j)
+        num_entries += !Psi.mask(i, j);
+    const dealii::Point<2> cell_size = Psi.cell_size();
+
+    if (verbose)
+      std::cout << "Grid size: " << nx << ", " << ny << "\n"
+                << "Number of valid entries: " << num_entries << "\n"
+                << "Resolution: " << cell_size[0] << ", " << cell_size[1]
+                << "\n";
+
+    CHECK(num_entries != 0);
+
+    CHECK_REAL(cell_size[0], dx, 1.0e-8);
+    CHECK_REAL(cell_size[1], dx, 1.0e-8);
+
+    for (size_t i = 0; i < nx; ++i)
+      for (size_t j = 0; j < ny; ++j)
+        if (!Psi.mask(i, j))
+        {
+          const std::array<size_t, 2> index{{i, j}};
+          const dealii::Point<2> x = Psi.grid_point(index);
+          CHECK_REAL(Psi.data(i, j), Phi.value(x), 1.0e-8);
+        }
+  }
+
   return 0;
 }
+

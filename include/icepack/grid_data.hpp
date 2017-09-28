@@ -2,7 +2,7 @@
 #ifndef ICEPACK_GRID_DATA_HPP
 #define ICEPACK_GRID_DATA_HPP
 
-#include <deal.II/base/function.h>
+#include <icepack/field.hpp>
 #include <deal.II/base/table.h>
 #include <boost/optional.hpp>
 
@@ -100,6 +100,14 @@ namespace icepack
     const std::string& filename,
     const double missing_data_value
   );
+
+
+  /**
+   * Interpolate a field represented using finite element basis functions to a
+   * regular grid
+   */
+  template <int dim>
+  GridData<dim> field_to_grid(const Field<dim>& phi, const double dx);
 }
 
 #endif

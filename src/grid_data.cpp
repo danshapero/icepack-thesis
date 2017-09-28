@@ -1,5 +1,7 @@
 
 #include <icepack/grid_data.hpp>
+#include <deal.II/grid/grid_tools.h>
+#include <deal.II/numerics/fe_field_function.h>
 #include <fstream>
 
 namespace icepack
@@ -240,5 +242,86 @@ namespace icepack
     file_stream.close();
   }
 
+
+  namespace
+  {
+    template <int dim, typename F>
+    void table_indices_for_each(
+      const TableIndices<dim>& index1,
+      const TableIndices<dim>& index2,
+      F&& f
+    )
+    {
+      size_t N = 1;
+      for (size_t k = 0; k < dim; ++k)
+        N *= index2[k] - index1[k];
+
+      for (size_t n = 0; n < N; ++n)
+      {
+        TableIndices<dim> index;
+        size_t m = n;
+        for (size_t k = 0; k < dim; ++k)
+        {
+          index[k] = m % (index2[k] - index1[k]);
+          m /= (index2[k] - index1[k]);
+        }
+
+        f(index);
+      }
+    }
+  }
+
+
+  template <int dim>
+  GridData<dim> field_to_grid(const Field<dim>& phi, const double dx)
+  {
+    const auto& discretization = phi.discretization();
+    const auto& triangulation = discretization.triangulation();
+
+    TableIndices<dim> n_points;
+    const auto predicate = [](const auto &){ return true; };
+    std::pair<Point<dim>, Point<dim>> box =
+      dealii::GridTools::compute_bounding_box(triangulation, predicate);
+    for (size_t k = 0; k < dim; ++k)
+    {
+      box.first[k] -= dx;
+      n_points[k] = std::ceil((box.second[k] - box.first[k]) / dx) + 1;
+      box.second[k] = box.first[k] + (n_points[k] - 1) * dx;
+    }
+
+    Table<dim, double> data;
+    Table<dim, bool> mask;
+    data.reinit(n_points);
+    mask.reinit(n_points);
+
+    data.fill(std::numeric_limits<double>::signaling_NaN());
+    mask.fill(true);
+
+    const auto& dof_handler = discretization.scalar().dof_handler();
+    const auto& coefficients = phi.coefficients();
+    const dealii::Functions::FEFieldFunction<dim>
+      Phi(dof_handler, coefficients);
+
+    const auto f = [&](const TableIndices<dim>& index)
+    {
+      Point<dim> x = box.first;
+      for (size_t k = 0; k < dim; ++k)
+        x[k] += index[k] * dx;
+
+      try
+      {
+        const double z = Phi.value(x);
+        mask(index) = false;
+        data(index) = z;
+      }
+      catch (...)
+      {}
+    };
+
+    table_indices_for_each(TableIndices<dim>(), n_points, f);
+    return GridData<dim>(box.first, box.second, data, mask);
+  }
+
+  template GridData<2> field_to_grid(const Field<2>&, const double);
 }
 
