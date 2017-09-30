@@ -2,7 +2,7 @@
 #include "testing.hpp"
 #include <icepack/field.hpp>
 #include <deal.II/fe/fe_values.h>
-#include <fstream>
+#include <sstream>
 
 using icepack::Field;
 using icepack::VectorField;
@@ -224,11 +224,9 @@ int main(int argc, char ** argv)
     const auto test = [&](const auto& Phi)
     {
       auto phi = icepack::interpolate(discretization, Phi);
-      const std::string filename = "phi.ucd";
-      phi.write_ucd(filename, "phi");
-      std::ifstream stream(filename.c_str());
-      CHECK(stream.good());
-      std::remove(filename.c_str());
+      std::stringstream stream;
+      phi.write_ucd("phi", stream);
+      CHECK(stream.str().size() > 0);
     };
 
     test(Phi);

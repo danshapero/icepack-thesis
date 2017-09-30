@@ -2,7 +2,6 @@
 #include <icepack/grid_data.hpp>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/fe_field_function.h>
-#include <fstream>
 
 namespace icepack
 {
@@ -170,16 +169,15 @@ namespace icepack
   template class GridData<2>;
 
 
-  GridData<2> read_arc_ascii_grid(const std::string& filename)
+  GridData<2> read_arc_ascii_grid(std::istream& stream)
   {
     unsigned int nx, ny;
     double x0, y0, dx, dy, missing;
     std::string dummy;
 
-    std::ifstream file_stream(filename);
-    file_stream >> dummy >> nx >> dummy >> ny;
-    file_stream >> dummy >> x0 >> dummy >> y0;
-    file_stream >> dummy >> dx >> dummy >> missing;
+    stream >> dummy >> nx >> dummy >> ny;
+    stream >> dummy >> x0 >> dummy >> y0;
+    stream >> dummy >> dx >> dummy >> missing;
     dy = dx;
 
     Point<2> lower(x0, y0);
@@ -190,9 +188,7 @@ namespace icepack
 
     for (unsigned int i = 0; i < ny; ++i)
       for (unsigned int j = 0; j < nx; ++j)
-        file_stream >> table(j, ny - i - 1);
-
-    file_stream.close();
+        stream >> table(j, ny - i - 1);
 
     for (unsigned int i = 0; i < nx; ++i)
       for (unsigned int j = 0; j < ny; ++j)
@@ -204,8 +200,8 @@ namespace icepack
 
   void write_arc_ascii_grid(
     const GridData<2>& grid,
-    const std::string& filename,
-    const double no_data_value
+    const double no_data_value,
+    std::ostream& stream
   )
   {
     const std::array<size_t, 2> n_subintervals = grid.n_subintervals();
@@ -219,27 +215,24 @@ namespace icepack
 
     const dealii::Point<2> xo = grid.grid_point(std::array<size_t, 2>{{0, 0}});
 
-    std::ofstream file_stream(filename);
-    file_stream << "ncols          " << nx << "\n"
-                << "nrows          " << ny << "\n"
-                << "xllcorner      " << xo[0] << "\n"
-                << "yllcorner      " << xo[1] << "\n"
-                << "cellsize       " << dx << "\n"
-                << "NODATA_value   " << no_data_value << "\n";
+    stream << "ncols          " << nx << "\n"
+           << "nrows          " << ny << "\n"
+           << "xllcorner      " << xo[0] << "\n"
+           << "yllcorner      " << xo[1] << "\n"
+           << "cellsize       " << dx << "\n"
+           << "NODATA_value   " << no_data_value << "\n";
 
     for (unsigned int i = 0; i < ny; ++i)
     {
       for (unsigned int j = 0; j < nx; ++j)
       {
         const bool mask = grid.mask(j, ny - i - 1);
-        file_stream << (mask ? no_data_value : grid.data(j, ny - i - 1));
-        file_stream << " ";
+        stream << (mask ? no_data_value : grid.data(j, ny - i - 1));
+        stream << " ";
       }
 
-      file_stream << "\n";
+      stream << "\n";
     }
-
-    file_stream.close();
   }
 
 

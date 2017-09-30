@@ -4,7 +4,7 @@
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/grid/manifold_lib.h>
-#include <fstream>
+#include <sstream>
 
 int main(int argc, char ** argv)
 {
@@ -76,34 +76,32 @@ int main(int argc, char ** argv)
     const std::string filename = "example_arc_grid.txt";
 
     // Create an Arc ASCII grid file.
+    std::ostringstream ostream;
+    ostream << "ncols          " << nx << "\n"
+            << "nrows          " << ny << "\n"
+            << "xllcorner      " << xo << "\n"
+            << "yllcorner      " << yo << "\n"
+            << "cellsize       " << dx << "\n"
+            << "NODATA_value   " << missing << "\n";
+
+    double x, y, z;
+    for (size_t i = ny; i > 0; --i)
     {
-      std::ofstream fid(filename);
-      fid << "ncols          " << nx << "\n"
-          << "nrows          " << ny << "\n"
-          << "xllcorner      " << xo << "\n"
-          << "yllcorner      " << yo << "\n"
-          << "cellsize       " << dx << "\n"
-          << "NODATA_value   " << missing << "\n";
+      y = yo + (i - 1) * dy;
 
-      double x, y, z;
-      for (size_t i = ny; i > 0; --i)
+      for (size_t j = 0; j < nx; ++j)
       {
-        y = yo + (i - 1) * dy;
-
-        for (size_t j = 0; j < nx; ++j)
-        {
-          x = xo + j * dx;
-          z = 1 + x * y;
-          fid << z << " ";
-        }
-
-        fid << "\n";
+        x = xo + j * dx;
+        z = 1 + x * y;
+        ostream << z << " ";
       }
 
-      fid.close();
+      ostream << "\n";
     }
 
-    icepack::GridData<2> example_data = icepack::read_arc_ascii_grid(filename);
+    const std::string& grid_file = ostream.str();
+    std::istringstream istream(grid_file);
+    icepack::GridData<2> example_data = icepack::read_arc_ascii_grid(istream);
 
     const dealii::Point<2> cell_size = example_data.cell_size();
     CHECK_REAL(cell_size[0], dx, 1.0e-15);
@@ -154,12 +152,13 @@ int main(int argc, char ** argv)
         mask(j, i) = false;
     mask(J, I) = true;
 
-    const std::string filename("grid_data_output.txt");
+    std::ostringstream ostream;
     const icepack::GridData<2> grid_data(lower, upper, data, mask);
-    write_arc_ascii_grid(grid_data, filename, -9999.0);
+    write_arc_ascii_grid(grid_data, -9999.0, ostream);
 
+    std::istringstream istream(ostream.str());
     const icepack::GridData<2> grid_data_in =
-      icepack::read_arc_ascii_grid(filename);
+      icepack::read_arc_ascii_grid(istream);
 
     const std::array<size_t, 2> n_subintervals = grid_data_in.n_subintervals();
     CHECK((n_subintervals[0] == nx) and (n_subintervals[1] == ny));

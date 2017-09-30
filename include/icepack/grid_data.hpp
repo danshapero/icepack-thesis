@@ -89,7 +89,7 @@ namespace icepack
    * the [Wikipedia article](http://en.wikipedia.org/wiki/Esri_grid) for the
    * format specification and more info.
    */
-  GridData<2> read_arc_ascii_grid(const std::string& filename);
+  GridData<2> read_arc_ascii_grid(std::istream& stream);
 
 
   /**
@@ -97,8 +97,8 @@ namespace icepack
    */
   void write_arc_ascii_grid(
     const GridData<2>& grid,
-    const std::string& filename,
-    const double missing_data_value
+    const double missing_data_value,
+    std::ostream& stream
   );
 
 

@@ -237,8 +237,8 @@ namespace icepack
      * Write out a field to a file in the `.ucd` format.
      */
     void write_ucd(
-      const std::string& filename,
-      const std::string& field_name
+      const std::string& field_name,
+      std::ostream& stream
     ) const;
 
 

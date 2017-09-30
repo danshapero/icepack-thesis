@@ -87,12 +87,10 @@ namespace icepack
 
   template <int rank, int dim, Duality duality>
   void FieldType<rank, dim, duality>::write_ucd(
-    const std::string& filename,
-    const std::string& field_name
+    const std::string& field_name,
+    std::ostream& stream
   ) const
   {
-    std::ofstream stream(filename.c_str());
-
     dealii::DataOut<dim> data_out;
     data_out.attach_dof_handler(discretization()(rank).dof_handler());
 
