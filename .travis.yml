@@ -13,8 +13,7 @@ env:
 
 before_install:
     - docker pull icepack/dealii:gcc-$VERSION
-    - docker run -itd --name build icepack/dealii:gcc-$VERSION
-    - docker exec build git clone https://github.com/danshapero/icepack.git /repo
+    - docker run -itd --volume $TRAVIS_BUILD_DIR:/repo --name build icepack/dealii:gcc-$VERSION
 
 script:
     - docker exec build cmake -H/repo -B/build
