@@ -6,6 +6,8 @@
 
 using dealii::Point;
 using dealii::Tensor;
+using dealii::Functions::ConstantFunction;
+using dealii::Functions::ZeroFunction;
 using icepack::testing::Fn;
 using icepack::testing::TensorFn;
 
@@ -220,7 +222,7 @@ int main(int argc, char ** argv)
         }
       );
 
-      const auto A = [&](const double){ return dealii::ZeroFunction<2>(); };
+      const auto A = [&](const double){ return ZeroFunction<2>(); };
 
       const auto H =
         [&](const double t) -> Fn<2>
@@ -273,7 +275,7 @@ int main(int argc, char ** argv)
         }
       );
 
-      const auto A = [&](const double){ return dealii::ZeroFunction<2>(); };
+      const auto A = [&](const double){ return ZeroFunction<2>(); };
 
       const auto H =
         [&](const double t) -> Fn<2>
@@ -304,7 +306,7 @@ int main(int argc, char ** argv)
       );
 
       const auto H_inflow =
-        [h_in](const double){ return dealii::ConstantFunction<2>(h_in); };
+        [h_in](const double){ return ConstantFunction<2>(h_in); };
 
       const TensorFn<2> U(
         [=](const Point<2>& x)
@@ -313,7 +315,7 @@ int main(int argc, char ** argv)
         }
       );
 
-      const auto A = [](const double){ return dealii::ZeroFunction<2>(); };
+      const auto A = [](const double){ return ZeroFunction<2>(); };
 
       // Given some point `x` inside the domain, `T(x)` is the length of time
       // that this point has spent to the right of the origin.
@@ -378,12 +380,7 @@ int main(int argc, char ** argv)
       );
 
       const double a_dot = 0.1 * h_in * u0 / length;
-      const auto A =
-        [=](const double)
-        {
-          return dealii::ConstantFunction<2>(a_dot);
-        };
-
+      const auto A = [=](const double){ return ConstantFunction<2>(a_dot); };
 
       const auto H =
         [&](const double t) -> Fn<2>

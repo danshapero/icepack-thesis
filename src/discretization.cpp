@@ -110,7 +110,7 @@ namespace icepack
     dealii::VectorTools::interpolate_boundary_values(
       dof_handler_,
       boundary_id,
-      dealii::ZeroFunction<dim>(fe_->n_components()),
+      dealii::Functions::ZeroFunction<dim>(fe_->n_components()),
       boundary_values
     );
 

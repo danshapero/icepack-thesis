@@ -121,7 +121,7 @@ namespace icepack
     const auto& M = scalar.mass_matrix();
     const auto& dh = scalar.dof_handler();
 
-    const dealii::ZeroFunction<2> zero;
+    const dealii::Functions::ZeroFunction<2> zero;
     std::map<dealii::types::boundary_id, const dealii::Function<2>*> fmap;
     for (const auto& id: ids)
       fmap[id] = &zero;
