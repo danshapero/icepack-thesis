@@ -7,13 +7,15 @@ services:
     - docker
 
 env:
-    - VERSION=5
-    - VERSION=6
-    - VERSION=7
+    - COMPILER=gcc-5
+    - COMPILER=gcc-6
+    - COMPILER=gcc-7
+    - COMPILER=clang-3.8
+    - COMPILER=clang-3.9
 
 before_install:
-    - docker pull icepack/dealii:gcc-$VERSION
-    - docker run -itd --volume $TRAVIS_BUILD_DIR:/repo --name build icepack/dealii:gcc-$VERSION
+    - docker pull icepack/dealii:$COMPILER
+    - docker run -itd --volume $TRAVIS_BUILD_DIR:/repo --name build icepack/dealii:$COMPILER
 
 script:
     - docker exec build cmake -H/repo -B/build
