@@ -1,5 +1,5 @@
 
-# icepack [![Build Status](https://travis-ci.org/danshapero/icepack.svg?branch=master)](https://travis-ci.org/danshapero/icepack)
+# icepack [![Build Status](https://travis-ci.org/icepack/icepack.svg?branch=master)](https://travis-ci.org/icepack/icepack)
 
 This library is for simulating the flow of glaciers and ice sheets using the finite element method.
 
