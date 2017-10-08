@@ -24,11 +24,11 @@ namespace icepack
     dealii::GeometryInfo<2>::faces_per_cell;
 
 
-  MassTransportImplicit::MassTransportImplicit()
+  MassTransport::MassTransport()
   {}
 
 
-  dealii::SparseMatrix<double> MassTransportImplicit::flux_matrix(
+  dealii::SparseMatrix<double> MassTransport::flux_matrix(
     const VectorField<2>& u,
     const dealii::ConstraintMatrix& constraints
   ) const
@@ -107,7 +107,7 @@ namespace icepack
   }
 
 
-  Field<2> MassTransportImplicit::solve(
+  Field<2> MassTransport::solve(
     const double dt,
     const Field<2>& h0,
     const Field<2>& a,

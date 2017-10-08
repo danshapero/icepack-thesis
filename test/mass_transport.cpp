@@ -62,7 +62,7 @@ int main(int argc, char ** argv)
   const icepack::Discretization<2>& discretization = *dptr;
   const double tolerance = std::pow(icepack::testing::resolution(tria), p);
 
-  const icepack::MassTransportImplicit mass_transport;
+  const icepack::MassTransport mass_transport;
 
 
   TEST_SUITE("mass transport, implicit discretization")

@@ -25,8 +25,8 @@ namespace icepack
 
 
   /**
-   * @brief Interface for updating the ice thickness from the continuity
-   * equation
+   * @brief Updates the ice thickness from the continuity equation using an
+   * implicit timestepping scheme
    *
    * The ice thickness \f$h\f$ evolves according to the advection equation
    * \f[
@@ -35,42 +35,11 @@ namespace icepack
    * where \f$u\f$ is the ice velocity, \f$\dot a\f$ is the accumulation rate
    * and \f$m\f$ is the melt rate.
    *
-   * There are several methods for solving these kinds of PDEs. For example,
-   * fully implicit time-stepping schemes are unconditionally stable, but
-   * require a more expensive linear solve. The Lax-Wendroff or streamlined
-   * upwind Petrov-Galerkin methods, on the other hand, are explicit in time,
-   * but they require that the Courant number be quite small for stability.
-   *
-   * This class is an interface for implementations of mass transport solvers;
-   * it doesn't actually solve anything itself.
-   *
    * @ingroup physics
    */
   struct MassTransport
   {
-    /**
-     * Solve the continuity equation over a single timestep.
-     */
-    virtual Field<2> solve(
-      const double dt,
-      const Field<2>& thickness,
-      const Field<2>& accumulation,
-      const VectorField<2>& velocity,
-      const std::set<dealii::types::boundary_id>& inflow_boundary_ids,
-      const Field<2>& inflow_thickness
-    ) const = 0;
-  };
-
-
-  /**
-   * @brief Updates the ice thickness from the continuity equation using an
-   * implicit timestepping scheme
-   *
-   * @ingroup physics
-   */
-  struct MassTransportImplicit : public MassTransport
-  {
-    MassTransportImplicit();
+    MassTransport();
 
     /**
      * Compute the matrix discretizing the action of the advective flux on a
@@ -92,7 +61,7 @@ namespace icepack
       const VectorField<2>& velocity,
       const std::set<dealii::types::boundary_id>& inflow_boundary_ids,
       const Field<2>& inflow_thickness
-    ) const override;
+    ) const;
   };
 
 }
