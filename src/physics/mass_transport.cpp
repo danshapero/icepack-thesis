@@ -24,7 +24,10 @@ namespace icepack
     dealii::GeometryInfo<2>::faces_per_cell;
 
 
-  MassTransport::MassTransport()
+  MassTransport::MassTransport(
+    const std::set<dealii::types::boundary_id>& inflow_boundary_ids_
+  ) :
+    inflow_boundary_ids(inflow_boundary_ids_)
   {}
 
 
@@ -112,7 +115,6 @@ namespace icepack
     const Field<2>& h0,
     const Field<2>& a,
     const VectorField<2>& u,
-    const std::set<dealii::types::boundary_id>& ids,
     const Field<2>& h_inflow
   ) const
   {
@@ -123,7 +125,7 @@ namespace icepack
 
     const dealii::Functions::ZeroFunction<2> zero;
     std::map<dealii::types::boundary_id, const dealii::Function<2>*> fmap;
-    for (const auto& id: ids)
+    for (const auto& id: inflow_boundary_ids)
       fmap[id] = &zero;
     std::map<dealii::types::global_dof_index, double> boundary_values;
     dealii::VectorTools::interpolate_boundary_values(dh, fmap, boundary_values);

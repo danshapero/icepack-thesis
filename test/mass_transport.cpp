@@ -62,7 +62,8 @@ int main(int argc, char ** argv)
   const icepack::Discretization<2>& discretization = *dptr;
   const double tolerance = std::pow(icepack::testing::resolution(tria), p);
 
-  const icepack::MassTransport mass_transport;
+  const std::set<dealii::types::boundary_id> inflow_boundary_ids{0};
+  const icepack::MassTransport mass_transport(inflow_boundary_ids);
 
 
   TEST_SUITE("mass transport, implicit discretization")
@@ -173,8 +174,6 @@ int main(int argc, char ** argv)
                   << "Residence time:      " << T << "\n"
                   << "Number of timesteps: " << num_timesteps << "\n";
 
-      const std::set<dealii::types::boundary_id> bcs{0};
-
       icepack::Field<2> h(h0);
       for (size_t k = 0; k < num_timesteps; ++k)
       {
@@ -183,7 +182,7 @@ int main(int argc, char ** argv)
         const icepack::Field<2> h_inflow =
           interpolate(discretization, H_inflow(t));
 
-        h = mass_transport.solve(dt, h, a, u, bcs, h_inflow);
+        h = mass_transport.solve(dt, h, a, u, h_inflow);
       }
 
       if (verbose)

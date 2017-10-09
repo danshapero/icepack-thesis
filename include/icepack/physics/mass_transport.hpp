@@ -39,7 +39,9 @@ namespace icepack
    */
   struct MassTransport
   {
-    MassTransport();
+    MassTransport(
+      const std::set<dealii::types::boundary_id>& inflow_boundary_ids
+    );
 
     /**
      * Compute the matrix discretizing the action of the advective flux on a
@@ -59,9 +61,10 @@ namespace icepack
       const Field<2>& thickness,
       const Field<2>& accumulation,
       const VectorField<2>& velocity,
-      const std::set<dealii::types::boundary_id>& inflow_boundary_ids,
       const Field<2>& inflow_thickness
     ) const;
+
+    const std::set<dealii::types::boundary_id> inflow_boundary_ids;
   };
 
 }
