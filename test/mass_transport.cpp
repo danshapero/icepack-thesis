@@ -88,7 +88,11 @@ int main(int argc, char ** argv)
         const icepack::VectorField<2> u =
           interpolate(discretization, tensor_fn_from_coords(Velocity, V));
 
-        const dealii::SparseMatrix<double> F = mass_transport.flux_matrix(u);
+        dealii::SparseMatrix<double> F = mass_transport.flux_matrix(u);
+        const std::set<dealii::types::boundary_id> boundary_ids{};
+        const dealii::SparseMatrix<double> F_i =
+          mass_transport.boundary_flux_matrix(u, boundary_ids);
+        F.add(1.0, F_i);
         const icepack::Field<2> h = interpolate(discretization, Thickness);
         icepack::DualField<2> f(discretization.shared_from_this());
         F.vmult(f.coefficients(), h.coefficients());

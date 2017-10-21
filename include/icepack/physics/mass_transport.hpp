@@ -44,12 +44,29 @@ namespace icepack
     );
 
     /**
-     * Compute the matrix discretizing the action of the advective flux on a
-     * given thickness field
+     * Compute the matrix discretizing the action of the advective flux on the
+     * thickness field
      */
     dealii::SparseMatrix<double> flux_matrix(
+      const VectorField<2>& velocity
+    ) const;
+
+    /**
+     * Compute the matrix discretizing the action of the boundary advective
+     * flux on the thickness field
+     */
+    dealii::SparseMatrix<double> boundary_flux_matrix(
       const VectorField<2>& velocity,
-      const dealii::ConstraintMatrix& constraints = dealii::ConstraintMatrix()
+      const std::set<dealii::types::boundary_id>& boundary_ids
+    ) const;
+
+    /**
+     * Compute the advective flux of thickness through part of the boundary
+     */
+    DualField<2> boundary_flux(
+      const Field<2>& thickness,
+      const VectorField<2>& velocity,
+      const std::set<dealii::types::boundary_id>& boundary_ids
     ) const;
 
     /**

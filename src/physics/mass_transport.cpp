@@ -32,20 +32,15 @@ namespace icepack
 
 
   dealii::SparseMatrix<double> MassTransport::flux_matrix(
-    const VectorField<2>& u,
-    const dealii::ConstraintMatrix& constraints
+    const VectorField<2>& u
   ) const
   {
     const auto& discretization = u.discretization();
     dealii::SparseMatrix<double> F(discretization.scalar().sparsity_pattern());
 
     const dealii::QGauss<2> quad = discretization.quad();
-    const dealii::QGauss<1> face_quad = discretization.face_quad();
-
     auto assembly_data =
       make_assembly_data<2>(evaluate::function(u));
-    auto assembly_face_data =
-      make_assembly_face_data<2>(evaluate::function(u));
 
     const auto& h_fe = discretization.scalar().finite_element();
     const unsigned int dofs_per_cell = h_fe.dofs_per_cell;
@@ -74,9 +69,38 @@ namespace icepack
         }
       }
 
+      std::get<0>(cell)->get_dof_indices(local_dof_ids);
+      F.add(local_dof_ids, cell_matrix);
+    }
+
+    return F;
+  }
+
+
+  dealii::SparseMatrix<double> MassTransport::boundary_flux_matrix(
+    const VectorField<2>& u,
+    const std::set<dealii::types::boundary_id>& boundary_ids
+  ) const
+  {
+    const auto& discretization = u.discretization();
+    dealii::SparseMatrix<double> F(discretization.scalar().sparsity_pattern());
+
+    const dealii::QGauss<1> face_quad = discretization.face_quad();
+    auto assembly_face_data =
+      make_assembly_face_data<2>(evaluate::function(u));
+
+    const auto& h_fe = discretization.scalar().finite_element();
+    const unsigned int dofs_per_cell = h_fe.dofs_per_cell;
+    dealii::FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
+    std::vector<dealii::types::global_dof_index> local_dof_ids(dofs_per_cell);
+
+    for (const auto& cell: discretization)
+    {
+      cell_matrix = 0;
+
       for (unsigned int face = 0; face < faces_per_cell; ++face)
       {
-        if (at_boundary(std::get<0>(cell), face))
+        if (at_boundary_complement(std::get<0>(cell), face, boundary_ids))
         {
           assembly_face_data.reinit(cell, face);
 
@@ -103,10 +127,64 @@ namespace icepack
       }
 
       std::get<0>(cell)->get_dof_indices(local_dof_ids);
-      constraints.distribute_local_to_global(cell_matrix, local_dof_ids, F);
+      F.add(local_dof_ids, cell_matrix);
     }
 
     return F;
+  }
+
+
+  DualField<2> MassTransport::boundary_flux(
+    const Field<2>& h,
+    const VectorField<2>& u,
+    const std::set<dealii::types::boundary_id>& boundary_ids
+  ) const
+  {
+    const auto& discretization = get_discretization(h, u);
+    DualField<2> f(discretization.shared_from_this());
+
+    const dealii::QGauss<1> face_quad = discretization.face_quad();
+    auto assembly_face_data =
+      make_assembly_face_data<2>(evaluate::function(h), evaluate::function(u));
+
+    const auto& h_fe = discretization.scalar().finite_element();
+    const unsigned int dofs_per_cell = h_fe.dofs_per_cell;
+    dealii::Vector<double> cell_values(dofs_per_cell);
+    std::vector<dealii::types::global_dof_index> local_dof_ids(dofs_per_cell);
+
+    for (const auto& cell: discretization)
+    {
+      cell_values = 0;
+
+      for (unsigned int face = 0; face < faces_per_cell; ++face)
+      {
+        if (at_boundary(std::get<0>(cell), face, boundary_ids))
+        {
+          assembly_face_data.reinit(cell, face);
+
+          for (unsigned int q = 0; q < face_quad.size(); ++q)
+          {
+            const double dl = assembly_face_data.JxW(q);
+            const auto values = assembly_face_data.values(q);
+            const double H = std::get<0>(values);
+            const Tensor<1, 2> U = std::get<1>(values);
+            const Tensor<1, 2> n = assembly_face_data.normal_vector(q);
+
+            for (unsigned int i = 0; i < dofs_per_cell; ++i)
+            {
+              const double phi =
+                assembly_face_data.fe_values_view<0>().value(i, q);
+              cell_values(i) += phi * H * U * n * dl;
+            }
+          }
+        }
+      }
+
+      std::get<0>(cell)->get_dof_indices(local_dof_ids);
+      f.coefficients().add(local_dof_ids, cell_values);
+    }
+
+    return f;
   }
 
 
@@ -121,30 +199,22 @@ namespace icepack
     const auto& discretization = get_discretization(h0, a, u);
     const auto& scalar = discretization.scalar();
     const auto& M = scalar.mass_matrix();
-    const auto& dh = scalar.dof_handler();
 
-    const dealii::Functions::ZeroFunction<2> zero;
-    std::map<dealii::types::boundary_id, const dealii::Function<2>*> fmap;
-    for (const auto& id: inflow_boundary_ids)
-      fmap[id] = &zero;
-    std::map<dealii::types::global_dof_index, double> boundary_values;
-    dealii::VectorTools::interpolate_boundary_values(dh, fmap, boundary_values);
-    for (const auto& p: boundary_values)
-      boundary_values[p.first] = h_inflow.coefficient(p.first);
-
-    DualField<2> r = transpose(Field<2>(h0 + dt * a));
+    DualField<2> f_i = boundary_flux(h_inflow, u, inflow_boundary_ids);
+    DualField<2> r = transpose(Field<2>(h0 + dt * a)) - dt * f_i;
     dealii::Vector<double>& R = r.coefficients();
 
     Field<2> h(discretization.shared_from_this());
     dealii::Vector<double>& H = h.coefficients();
 
     dealii::SparseMatrix<double> F = flux_matrix(u);
+    const dealii::SparseMatrix<double> F_o =
+      boundary_flux_matrix(u, inflow_boundary_ids);
+    F.add(1.0, F_o);
     F *= dt;
     F.add(1.0, M);
 
-    dealii::MatrixTools::apply_boundary_values(boundary_values, F, H, R);
     scalar.constraints().condense(F, R);
-
     dealii::SparseDirectUMFPACK G;
     G.initialize(F);
 
