@@ -3,6 +3,7 @@
 #define ICEPACK_ICE_SHELF_HPP
 
 #include <icepack/physics/viscosity.hpp>
+#include <icepack/physics/mass_transport.hpp>
 #include <icepack/numerics/optimization.hpp>
 
 namespace icepack
@@ -79,8 +80,21 @@ namespace icepack
       const SolveOptions solve_options = SolveOptions()
     ) const;
 
+    /**
+     * Update the ice thickness via the continuity equation for a single
+     * timestep
+     */
+    Field<2> solve(
+      const double dt,
+      const Field<2>& thickness,
+      const Field<2>& accumulation,
+      const VectorField<2>& velocity,
+      const Field<2>& inflow_thickness
+    ) const;
+
     const std::set<dealii::types::boundary_id> dirichlet_boundary_ids;
 
+    const MassTransport mass_transport;
     const GravityFloating gravity;
     const Viscosity viscosity;
     const double tolerance;

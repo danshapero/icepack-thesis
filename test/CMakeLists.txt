@@ -51,6 +51,7 @@ icepack_grid_tests(
   ice_shelf
   ice_stream
   mass_transport
+  ice_shelf_coupled
 )
 
 

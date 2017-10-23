@@ -107,6 +107,7 @@ namespace icepack
     const Viscosity& viscosity_,
     const double tolerance_
   ) : dirichlet_boundary_ids(dirichlet_boundary_ids_),
+      mass_transport(MassTransport(dirichlet_boundary_ids_)),
       gravity(),
       viscosity(viscosity_),
       tolerance(tolerance_)
@@ -164,6 +165,18 @@ namespace icepack
     const double initial_viscous_action = viscosity.action(h, theta, u0);
     const double tol = initial_viscous_action * tolerance;
     return numerics::newton_search(u0, F, dF, P, tol, options);
+  }
+
+
+  Field<2> IceShelf::solve(
+    const double dt,
+    const Field<2>& h0,
+    const Field<2>& a,
+    const VectorField<2>& u,
+    const Field<2>& h_inflow
+  ) const
+  {
+    return mass_transport.solve(dt, h0, a, u, h_inflow);
   }
 
 } // namespace icepack
