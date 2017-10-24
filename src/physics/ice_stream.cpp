@@ -184,11 +184,13 @@ namespace icepack
     const double tolerance_
   ) :
     dirichlet_ids(dirichlet_ids_),
+    mass_transport(MassTransport(dirichlet_ids_)),
     gravity(Gravity(dirichlet_ids)),
     viscosity(viscosity_),
     friction(friction_),
     tolerance(tolerance_)
   {}
+
 
   VectorField<2> IceStream::solve(
     const Field<2>& h,
@@ -245,6 +247,35 @@ namespace icepack
     const double initial_viscous_action = viscosity.action(h, theta, u0);
     const double tol = initial_viscous_action * tolerance;
     return numerics::newton_search(u0, F, dF, P, tol, options);
+  }
+
+
+  Field<2> IceStream::solve(
+    const double dt,
+    const Field<2>& h,
+    const Field<2>& a,
+    const VectorField<2>& u,
+    const Field<2>& h_inflow
+  ) const
+  {
+    return mass_transport.solve(dt, h, a, u, h_inflow);
+  }
+
+
+  Field<2> compute_surface(const Field<2>& h, const Field<2>& b)
+  {
+    const auto& discretization = get_discretization(h, b);
+    Field<2> s(discretization.shared_from_this());
+    dealii::Vector<double>& S = s.coefficients();
+
+    for (size_t n = 0; n < S.size(); ++n)
+    {
+      const double B = b.coefficient(n);
+      const double H = h.coefficient(n);
+      S[n] = (B < 0) ? std::max(B + H, (1 - rho_ice / rho_water) * H) : B + H;
+    }
+
+    return s;
   }
 
 }

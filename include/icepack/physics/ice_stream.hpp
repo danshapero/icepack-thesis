@@ -4,6 +4,7 @@
 
 #include <icepack/physics/viscosity.hpp>
 #include <icepack/physics/friction.hpp>
+#include <icepack/physics/mass_transport.hpp>
 #include <icepack/numerics/optimization.hpp>
 
 namespace icepack
@@ -38,6 +39,20 @@ namespace icepack
 
     const std::set<dealii::types::boundary_id>& dirichlet_ids;
   };
+
+
+  /**
+   * @brief Compute the surface elevation from the bed elevation and thickness
+   *
+   * When the bed elevation is below sea level, the surface elevation is
+   * determined by the equation
+   * \f[
+   *   s = \max\left\{b + h, (1 - \rho_I/\rho_W)\cdot h\right\},
+   * \f]
+   * where \f$b, h\f$ are respectively the bed elevation and thickness,
+   * depending on whether the ice is grounded or floating.
+   */
+  Field<2> compute_surface(const Field<2>& thickness, const Field<2>& bed);
 
 
   /**
@@ -84,8 +99,17 @@ namespace icepack
       const SolveOptions& solve_options = SolveOptions()
     ) const;
 
+    Field<2> solve(
+      const double dt,
+      const Field<2>& thickness,
+      const Field<2>& accumulation,
+      const VectorField<2>& velocity,
+      const Field<2>& inflow_thickness
+    ) const;
+
     const std::set<dealii::types::boundary_id> dirichlet_ids;
 
+    const MassTransport mass_transport;
     const Gravity gravity;
     const Viscosity viscosity;
     const Friction friction;
