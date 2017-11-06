@@ -299,5 +299,60 @@ namespace icepack
     return A;
   }
 
+
+  DualField<2> Viscosity::mixed_derivative(
+    const Field<2>& h,
+    const Field<2>& theta,
+    const VectorField<2>& u,
+    const VectorField<2>& v,
+    const dealii::ConstraintMatrix& constraints
+  ) const
+  {
+    const auto& discretization = get_discretization(h, theta, u, v);
+    DualField<2> f(discretization.shared_from_this());
+
+    const auto quad = discretization.quad();
+    auto assembly_data = make_assembly_data<2>(
+      evaluate::function(h),
+      evaluate::function(theta),
+      evaluate::symmetric_gradient(u),
+      evaluate::symmetric_gradient(v)
+    );
+
+    const size_t dofs_per_cell =
+      discretization(0).finite_element().dofs_per_cell;
+    dealii::Vector<double> cell_derivative(dofs_per_cell);
+    std::vector<dealii::types::global_dof_index> local_dof_ids(dofs_per_cell);
+
+    for (const auto& cell: discretization)
+    {
+      cell_derivative = 0;
+      assembly_data.reinit(cell);
+
+      for (unsigned int q = 0; q < quad.size(); ++q)
+      {
+        const double dx = assembly_data.JxW(q);
+        const auto values = assembly_data.values(q);
+        const double H = std::get<0>(values);
+        const double Theta = std::get<1>(values);
+        const SymmetricTensor<2, 2> eps_u = std::get<2>(values);
+        const SymmetricTensor<2, 2> eps_v = std::get<2>(values);
+        const SymmetricTensor<2, 2> dM = membrane_stress.dtheta(Theta, eps_u);
+
+        for (unsigned int i = 0; i < dofs_per_cell; ++i)
+        {
+          const double phi_i = assembly_data.fe_values_view<0>().value(i, q);
+          cell_derivative(i) += H * (dM * eps_v) * phi_i * dx;
+        }
+      }
+
+      std::get<0>(cell)->get_dof_indices(local_dof_ids);
+      constraints.distribute_local_to_global(
+        cell_derivative, local_dof_ids, f.coefficients()
+      );
+    }
+
+    return f;
+  }
 }
 

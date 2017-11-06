@@ -199,6 +199,20 @@ namespace icepack
       const dealii::ConstraintMatrix& constraints = dealii::ConstraintMatrix()
     ) const;
 
+    /**
+     * Evaluate a mixed derivative of the viscous power with respect to the
+     * velocity and rheology parameter
+     *
+     * This function is used to solve inverse problems for the rheology.
+     */
+    DualField<2> mixed_derivative(
+      const Field<2>& thickness,
+      const Field<2>& theta,
+      const VectorField<2>& velocity,
+      const VectorField<2>& lambda,
+      const dealii::ConstraintMatrix& constraints = dealii::ConstraintMatrix()
+    ) const;
+
     const MembraneStress membrane_stress;
   };
 
