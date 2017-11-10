@@ -10,6 +10,7 @@ set(SOURCES
   physics/ice_shelf.cpp
   physics/ice_stream.cpp
   physics/mass_transport.cpp
+  inverse/error_functionals.cpp
 )
 
 include (GenerateExportHeader)
