@@ -336,7 +336,7 @@ namespace icepack
         const double H = std::get<0>(values);
         const double Theta = std::get<1>(values);
         const SymmetricTensor<2, 2> eps_u = std::get<2>(values);
-        const SymmetricTensor<2, 2> eps_v = std::get<2>(values);
+        const SymmetricTensor<2, 2> eps_v = std::get<3>(values);
         const SymmetricTensor<2, 2> dM = membrane_stress.dtheta(Theta, eps_u);
 
         for (unsigned int i = 0; i < dofs_per_cell; ++i)

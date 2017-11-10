@@ -9,10 +9,23 @@ using icepack::testing::Fn;
 using icepack::testing::TensorFn;
 using namespace icepack::constants;
 
+
+double AA(const double theta)
+{
+    return theta;
+}
+
+
+double dAA(const double)
+{
+    return 1.0;
+}
+
+
 int main(int argc, char ** argv)
 {
   const auto args = icepack::testing::get_cmdline_args(argc, argv);
-  //const bool verbose = args.count("--verbose");
+  const bool verbose = args.count("--verbose");
   const bool refined = args.count("--refined");
   const bool quadratic = args.count("--quadratic");
 
@@ -27,12 +40,12 @@ int main(int argc, char ** argv)
   const Fn<2> Thickness([&](const Point<2>& x){return h0 - dh * x[0] / L;});
 
   const double temp = 254.0;
-  const Fn<2> Theta([&](const Point<2>&){return temp;});
+  const double A = icepack::rate_factor(temp);
+  const Fn<2> Theta([&](const Point<2>&){return A;});
 
   const double rho = rho_ice * (1 - rho_ice / rho_water);
-  const icepack::MembraneStress membrane_stress;
+  const icepack::MembraneStress membrane_stress(3.0, AA, dAA);
   const double n = membrane_stress.n;
-  const double A = icepack::rate_factor(temp);
   const double u0 = 100.0;
   const TensorFn<2> Velocity(
     [&](const Point<2>& x)
@@ -60,7 +73,7 @@ int main(int argc, char ** argv)
      const double py = x[1] / W;
      const double alpha = 16 * px * (1 - px) * py * (1 - py);
      const double dtheta = 5.0;
-     return alpha * dtheta;
+     return icepack::rate_factor(temp + alpha * dtheta) - A;
     }
   );
 
@@ -80,8 +93,24 @@ int main(int argc, char ** argv)
 
   const icepack::DualField<2> dF_dtheta =
     viscosity.mixed_derivative(h, theta, u, v);
+  const double dF = inner_product(dF_dtheta, phi);
 
-  std::cout << inner_product(dF_dtheta, phi) << "\n";
+  const size_t num_samples = 16;
+  std::vector<double> errors(num_samples);
+  for (size_t k = 0; k < num_samples; ++k)
+  {
+    const double delta = 1.0 / (1 << k);
+    const double delta_F =
+      (inner_product(viscosity.derivative(h, theta + delta * phi, u), v) -
+       inner_product(viscosity.derivative(h, theta - delta * phi, u), v))
+      / (2*delta);
+    errors[k] = std::abs(delta_F - dF);
+  }
+
+  if (verbose)
+    icepack::testing::print_errors(errors);
+
+  CHECK(icepack::testing::is_decreasing(errors));
 
   return 0;
 }
