@@ -58,7 +58,7 @@ int main(int argc, char ** argv)
     {
       const double q = 1 - pow(1 - dh * x[0] / (L * h0), 4);
       const double f = rho * gravity * h0;
-      return Tensor<1, 2>{{u0 + std::pow(f / 4, n) * A * q * L / dh / 4, 0}};
+      return Tensor<1, 2>{{u0 + std::pow(f / 4, n) * A * q * L * h0 / dh / 4, 0}};
     }
   );
 
@@ -163,6 +163,7 @@ int main(int argc, char ** argv)
     G.initialize(A);
     icepack::VectorField<2> lambda(discretization);
     G.vmult(lambda.coefficients(), dE.coefficients());
+    constraints.distribute(lambda.coefficients());
 
     // Compute the derivative of the misfit functional with respect to `theta`
     // using the adjoint state variable
@@ -174,14 +175,15 @@ int main(int argc, char ** argv)
     std::cout << "Max values of theta: " << max(theta) << ", "
               << icepack::max(icepack::Field<2>(theta + dtheta)) << "\n";
 
-    const size_t num_samples = 24;
+    const size_t num_samples = 12;
     std::vector<double> errors(num_samples);
     for (size_t k = 0; k < num_samples; ++k)
     {
       const double delta = 1.0 / (1 << k);
       const icepack::Field<2> phi = theta + delta * dtheta;
       const icepack::VectorField<2> v = ice_shelf.solve(h, phi, u);
-      std::cout << mean_square_error.action(v, uo, sigma) << ", " << misfit << "\n";
+      std::cout << mean_square_error.action(v, uo, sigma) - misfit << ", "
+                << delta * inner_product(dF, dtheta) << "\n";
       const double delta_E = mean_square_error.action(v, uo, sigma) - misfit;
       errors[k] = std::abs(delta_E - delta * inner_product(dF, dtheta));
     }
